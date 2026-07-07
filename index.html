@@ -76,6 +76,21 @@
   .eyebrow{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);
     margin:0 0 12px;display:flex;align-items:center;gap:10px}
   .eyebrow:after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  .scopebar{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 18px}
+  .scopeseg{font-size:12px;font-weight:500;padding:7px 12px;border-radius:8px;cursor:pointer;background:var(--surface);border:1px solid var(--line-2);color:var(--muted);transition:.12s;user-select:none;display:inline-flex;align-items:center;gap:7px}
+  .scopeseg:hover{color:var(--text);border-color:var(--faint)}
+  .scopeseg b{font-family:"JetBrains Mono",monospace;font-weight:600;font-size:11px;color:var(--faint)}
+  .scopeseg.on{background:var(--surface-3);color:var(--text);border-color:var(--brand)}
+  .scopeseg.on b{color:var(--brand)}
+  .exp{color:var(--faint);font-weight:700;margin-left:6px;transition:.15s;display:inline-block}
+  tr.open .exp{transform:rotate(90deg);color:var(--brand)}
+  .detailrow>td{padding:0;background:var(--bg-2)}
+  .detailwrap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 24px;padding:16px 20px;border-bottom:2px solid var(--line)}
+  .dcell{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .dl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600}
+  .dv{font-size:12px;color:#c0cde1;line-height:1.5;white-space:pre-line;word-break:break-word}
+  @media(max-width:900px){.detailwrap{grid-template-columns:1fr 1fr}}
+  @media(max-width:600px){.detailwrap{grid-template-columns:1fr}}
 
   /* ---------- kpi ---------- */
   .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:26px}
@@ -196,7 +211,7 @@
       <div class="glyph"></div>
       <div>
         <h1>Chat360 · Delivery Board</h1>
-        <div class="sub"><b>Platinum-tier</b> delivery health · tech issues · full project tracker</div>
+        <div class="sub"><b>All-tier</b> delivery health · tech issues · full project tracker</div>
       </div>
     </div>
     <div class="barctl">
@@ -214,13 +229,14 @@
 
   <!-- ============ OVERVIEW ============ -->
   <section class="view on" id="v-overview">
-    <div class="eyebrow">Platinum portfolio</div>
+    <div class="eyebrow">Portfolio</div>
+    <div class="scopebar" id="scopeBar"></div>
     <div class="kpis" id="kpis"></div>
 
     <div class="eyebrow">Delivery risk</div>
     <div class="grid3">
       <div class="card">
-        <div class="hd"><span class="dot"></span><h2>Platinum delay rate</h2></div>
+        <div class="hd"><span class="dot"></span><h2 id="drTitle">Platinum delay rate</h2></div>
         <div class="bd"><div class="donut-wrap">
           <div class="donut" id="donut"><div class="inner"><b id="drVal">0%</b><span>delayed</span></div></div>
           <div class="drleg" id="drLeg"></div>
@@ -238,18 +254,18 @@
 
     <div class="grid2">
       <div class="card">
-        <div class="hd"><span class="dot"></span><h2>Delayed Platinum by CSM</h2></div>
+        <div class="hd"><span class="dot"></span><h2 id="csmTitle">Delayed Platinum by CSM</h2></div>
         <div class="bd" id="csmBody"></div>
       </div>
       <div class="card">
-        <div class="hd"><span class="dot"></span><h2>Delayed Platinum by bot builder</h2></div>
+        <div class="hd"><span class="dot"></span><h2 id="bbTitle">Delayed Platinum by bot builder</h2></div>
         <div class="bd" id="bbBody"></div>
       </div>
     </div>
 
     <div class="eyebrow">At-risk detail</div>
     <div class="card" style="margin-bottom:26px">
-      <div class="hd"><span class="dot"></span><h2>Delayed &amp; on-hold Platinum</h2><span class="pill" id="detCnt">0</span></div>
+      <div class="hd"><span class="dot"></span><h2 id="detTitle">Delayed &amp; on-hold Platinum</h2><span class="pill" id="detCnt">0</span></div>
       <div class="tscroll">
         <table><thead><tr>
           <th>Project</th><th>CSM</th><th>PM</th><th>Bot Builder</th><th>Days</th><th>Priority</th><th>Root Cause</th><th>Latest Update</th>
@@ -320,6 +336,18 @@ const stKey = s => (s||'').replace(/\s+/g,'');
 const blank = v => { const t=(v||'').toString().trim(); return !t || t==='—' || t==='-'; };
 const PH = {Delivered:'var(--live)','On Track':'var(--track)',Delayed:'var(--delay)','On Hold':'var(--hold)',Churned:'var(--churn)'};
 const PRIO_C = {Critical:'var(--churn)',High:'var(--delay)',Medium:'var(--track)',Low:'var(--live)'};
+function buildDetail(d){
+  let items=(d._all&&d._all.length)?d._all.slice():
+    [['Project',d.project],['CSM',d.csm],['PM',d.pm],['Bot Builder',d.bb],['Category',d.category],
+     ['City',d.city],['PO',d.po],['Products Live',d.productsLive],['Products Non-Live',d.productsNonLive],
+     ['Ageing',d.ageing],['Tentative Go-Live',d.tentative],['Actual Go-Live',d.actual],['Phase',d.phase],
+     ['Status',d.status],['Days Delayed',d.daysDelayed],['Priority',d.priority],['Root Cause',d.rootCause],
+     ['Latest Update',d.update]].map(x=>({label:x[0],value:x[1]}));
+  const cells=items.filter(x=>x.value&&x.value.toString().trim())
+    .map(x=>`<div class="dcell"><span class="dl">${esc(x.label)}</span><span class="dv">${esc(x.value)}</span></div>`).join('');
+  return cells||`<div class="dcell"><span class="dv">No additional detail.</span></div>`;
+}
+function tglDetail(tr){const nx=tr.nextElementSibling;if(nx&&nx.classList.contains('detailrow')){nx.hidden=!nx.hidden;tr.classList.toggle('open');}}
 
 function count(arr,key,order,split){
   const m={};
@@ -342,10 +370,22 @@ function bars(sel,entries,colorFn){
 }
 
 /* ===== OVERVIEW ===== */
+let ovScope='All';
+function renderScopeBar(){
+  const tiers=['All','Platinum','Gold','Silver','Bronze','POC'];
+  const cnt=t=>t==='All'?TRACKER.length:TRACKER.filter(d=>catKey(d.category)===t).length;
+  $('#scopeBar').innerHTML=tiers.map(t=>`<span class="scopeseg${t===ovScope?' on':''}" data-t="${t}">${t} <b>${cnt(t)}</b></span>`).join('');
+}
 function renderOverview(){
-  const plat = TRACKER.filter(d=>catKey(d.category)==='Platinum');
+  renderScopeBar();
+  const L = ovScope==='All'?'All tiers':ovScope;
+  $('#drTitle').textContent=(ovScope==='All'?'Overall':L)+' delay rate';
+  $('#csmTitle').textContent='Delayed '+(ovScope==='All'?'projects':L)+' by CSM';
+  $('#bbTitle').textContent='Delayed '+(ovScope==='All'?'projects':L)+' by bot builder';
+  $('#detTitle').textContent='Delayed & on-hold'+(ovScope==='All'?' projects':' '+L);
+  const plat = TRACKER.filter(d=> ovScope==='All' ? true : catKey(d.category)===ovScope);
   const by = st => plat.filter(d=>d.status===st).length;
-  [['total','Platinum total',plat.length,''],
+  [['total',(ovScope==='All'?'Total projects':L+' total'),plat.length,''],
    ['deliv','Delivered',by('Delivered'),plat.length],
    ['delay','Delayed',by('Delayed'),plat.length],
    ['track','On track',by('On Track'),plat.length],
@@ -360,7 +400,7 @@ function renderOverview(){
   $('#drLeg').innerHTML =
     `<div class="row"><span class="sw" style="background:var(--delay)"></span>Delayed — ${by('Delayed')} of ${plat.length}</div>
      <div class="row"><span class="sw" style="background:var(--surface-3)"></span>Delivered / on track / other — ${plat.length-by('Delayed')}</div>
-     <div class="foot">Delayed ÷ Platinum total</div>`;
+     <div class="foot">Delayed ÷ ${ovScope==='All'?'total projects':L+' total'}</div>`;
 
   const delayed = plat.filter(d=>d.status==='Delayed');
   const holdset = plat.filter(d=>d.status==='Delayed'||d.status==='On Hold');
@@ -371,7 +411,7 @@ function renderOverview(){
     bars('#c2body',prio,k=>PRIO_C[k]||'var(--muted)'); }
   else { $('#c2title').textContent='Delayed by phase';
     if(!bars('#c2body',count(delayed,'phase'),()=>'var(--delay)'))
-      $('#c2body').innerHTML=`<div class="noteempty">No delayed Platinum projects.</div>`; }
+      $('#c2body').innerHTML=`<div class="noteempty">No delayed projects in scope.</div>`; }
 
   // adaptive card 3: root cause if present, else time-overdue buckets
   const root = count(holdset,'rootCause');
@@ -382,7 +422,7 @@ function renderOverview(){
     delayed.forEach(d=>{const n=num(d.daysDelayed); if(n>90)b['90+ days']++;else if(n>60)b['61–90 days']++;else if(n>30)b['31–60 days']++;else if(n>0)b['1–30 days']++;});
     const ent=Object.entries(b).filter(e=>e[1]>0);
     if(!bars('#c3body',ent,k=>k==='90+ days'?'var(--churn)':'var(--delay)'))
-      $('#c3body').innerHTML=`<div class="noteempty">No overdue Platinum projects.</div>`;
+      $('#c3body').innerHTML=`<div class="noteempty">No overdue projects in scope.</div>`;
   }
 
   if(!bars('#csmBody',count(delayed,'csm'),()=>'var(--churn)')) $('#csmBody').innerHTML=`<div class="noteempty">None.</div>`;
@@ -398,7 +438,7 @@ function renderOverview(){
       <td>${blank(d.priority)?'<span class="sub-mono">—</span>':`<span class="chip pr-${d.priority}">${esc(d.priority)}</span>`}</td>
       <td class="sub-mono">${esc(d.rootCause)||'—'}</td>
       <td class="upd clip">${esc(d.update)}</td>
-    </tr>`).join('') || `<tr><td colspan="8" class="empty">No delayed or on-hold Platinum projects.</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="8" class="empty">No delayed or on-hold projects in scope.</td></tr>`;
 
   const open=TECH.filter(t=>t.status==='Open').length, res=TECH.filter(t=>t.status==='Resolved').length;
   const c360=TECH.filter(t=>t.owner==='Chat360').length, cli=TECH.filter(t=>t.owner==='Client').length;
@@ -426,8 +466,8 @@ function renderTracker(){
   rows.sort((a,b)=>{const pa=catKey(a.category)==='Platinum',pb=catKey(b.category)==='Platinum';if(pa!==pb)return pa?-1:1;
     const sa=so[a.status]??9,sb=so[b.status]??9;if(sa!==sb)return sa-sb;return num(b.daysDelayed)-num(a.daysDelayed);});
   $('#trkBody').innerHTML=rows.length?rows.map(d=>{const k=catKey(d.category);const pc=PH[d.status]||'var(--faint)';
-    return `<tr class="${k==='Platinum'?'plat':''}" onclick="this.querySelector('.upd').classList.toggle('clip')">
-      <td class="pjt">${esc(d.project)}</td>
+    return `<tr class="${k==='Platinum'?'plat':''}" onclick="tglDetail(this)" title="Click for full sheet detail">
+      <td class="pjt">${esc(d.project)}<span class="exp">›</span></td>
       <td><span class="chip cat-${k}">${catShort(d.category).toUpperCase()}</span></td>
       <td class="sub-mono">${esc(d.csm)}</td><td class="sub-mono">${esc(d.pm)}</td><td class="sub-mono">${esc(d.bb)||'—'}</td>
       <td class="sub-mono">${esc(d.phase)}</td>
@@ -435,7 +475,8 @@ function renderTracker(){
       <td class="dd" style="color:${num(d.daysDelayed)>90?'var(--churn)':num(d.daysDelayed)>0?'var(--delay)':'var(--faint)'}">${num(d.daysDelayed)||'—'}</td>
       <td>${blank(d.priority)?'<span class="sub-mono">—</span>':`<span class="chip pr-${d.priority}">${esc(d.priority)}</span>`}</td>
       <td class="sub-mono">${esc(d.rootCause)||'—'}</td>
-      <td class="upd clip">${esc(d.update)}</td></tr>`;}).join('')
+      <td class="upd clip">${esc(d.update)}</td></tr>
+      <tr class="detailrow" hidden><td colspan="11"><div class="detailwrap">${buildDetail(d)}</div></td></tr>`;}).join('')
     :`<tr><td colspan="11" class="empty">No projects match these filters.</td></tr>`;
 }
 
@@ -497,6 +538,7 @@ async function loadLive(){
   }catch(err){setLive('err','Live unavailable — snapshot');console.warn('live load failed:',err);$('#syncTime').textContent='snapshot';}
 }
 $('#refresh').onclick=loadLive;
+$('#scopeBar').onclick=e=>{const t=e.target.closest('[data-t]');if(!t)return;ovScope=t.dataset.t;renderOverview();};
 buildTrackerFilters();buildTechFilters();renderAll();loadLive();
 if(LIVE.enabled&&LIVE.refreshMs>0)setInterval(loadLive,LIVE.refreshMs);
 </script>
