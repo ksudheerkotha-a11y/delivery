@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chat360 · Delivery Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080b11; --bg-2:#0b0f17;
+    --surface:#0f1420; --surface-2:#131a28; --surface-3:#1a2333;
+    --line:#1e2839; --line-2:#26324a; --line-soft:#161e2c;
+    --text:#eef2f8; --muted:#8b99b0; --faint:#586479;
+    --brand:#42b8cc; --live:#2fd39a; --track:#4fb0ec; --delay:#f4b13c;
+    --hold:#a488f5; --churn:#f2647f; --high:#ff7d5e; --plat:#c0adf7;
+    --gold:#d9b25c; --silver:#b7c2d4; --bronze:#c88d63;
+    --r:12px; --r-lg:16px;
+    --sh:0 1px 0 rgba(255,255,255,.02) inset, 0 10px 30px -18px rgba(0,0,0,.7);
+    --grid:8px; font-synthesis:none;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1100px 520px at 88% -10%, rgba(66,184,204,.07), transparent 62%),
+      radial-gradient(760px 420px at 4% -4%, rgba(164,136,245,.06), transparent 58%),
+      var(--bg);
+    color:var(--text); font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.5; letter-spacing:-.005em;
+  }
+  .wrap{max-width:1400px;margin:0 auto;padding:0 28px 72px}
+  .mono{font-family:"JetBrains Mono",monospace}
+
+  /* ---------- app bar ---------- */
+  .appbar{
+    position:sticky;top:0;z-index:20;margin:0 -28px 26px;padding:16px 28px;
+    background:rgba(8,11,17,.82);backdrop-filter:saturate(140%) blur(10px);
+    border-bottom:1px solid var(--line-soft);
+    display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:13px}
+  .glyph{width:38px;height:38px;border-radius:10px;flex:none;
+    background:linear-gradient(155deg,var(--brand),#2c6f86);display:grid;place-items:center;position:relative;
+    box-shadow:0 6px 16px -6px rgba(66,184,204,.55)}
+  .glyph:before{content:"";width:13px;height:13px;border-radius:50% 50% 50% 2px;background:var(--bg);transform:rotate(-8deg)}
+  .brand h1{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:19px;letter-spacing:-.02em;margin:0;line-height:1}
+  .brand .sub{font-size:12px;color:var(--faint);margin-top:4px;letter-spacing:0}
+  .brand .sub b{color:var(--plat);font-weight:500}
+  .barctl{display:flex;align-items:center;gap:12px}
+  .sync{font-size:11px;color:var(--faint);text-align:right;line-height:1.3}
+  .sync b{color:var(--muted);font-weight:500}
+  .livechip{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:500;
+    padding:6px 11px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--muted)}
+  .livechip .led{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+  .livechip.on{border-color:rgba(47,211,154,.35);color:var(--live);background:rgba(47,211,154,.06)}
+  .livechip.on .led{background:var(--live);box-shadow:0 0 7px var(--live);animation:pulse 2.4s infinite}
+  .livechip.err{border-color:rgba(242,100,127,.35);color:var(--churn)} .livechip.err .led{background:var(--churn)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .btn{font-family:inherit;font-size:12px;font-weight:500;padding:7px 12px;border-radius:8px;cursor:pointer;
+    background:var(--surface-3);border:1px solid var(--line-2);color:var(--text);transition:.13s;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{border-color:var(--brand);color:var(--brand)}
+
+  /* ---------- nav ---------- */
+  .nav{display:flex;gap:2px;margin-bottom:24px}
+  .tab{font-size:13.5px;font-weight:500;padding:9px 15px;cursor:pointer;color:var(--muted);
+    border-radius:9px;transition:.12s;display:flex;align-items:center;gap:8px}
+  .tab:hover{color:var(--text);background:var(--surface)}
+  .tab.on{color:var(--text);background:var(--surface-3)}
+  .tab .cnt{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:6px;background:var(--surface);color:var(--faint)}
+  .tab.on .cnt{background:rgba(66,184,204,.14);color:var(--brand)}
+
+  .view{display:none} .view.on{display:block;animation:fade .22s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .eyebrow{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);
+    margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  .eyebrow:after{content:"";flex:1;height:1px;background:var(--line-soft)}
+
+  /* ---------- kpi ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:26px}
+  .kpi{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r);
+    padding:16px 17px 15px;position:relative;overflow:hidden;transition:.15s}
+  .kpi:hover{border-color:var(--line-2)}
+  .kpi:before{content:"";position:absolute;left:0;top:0;right:0;height:2px;opacity:.9}
+  .kpi .n{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:600;line-height:1;letter-spacing:-.03em}
+  .kpi .l{font-size:10.5px;color:var(--muted);margin-top:9px;text-transform:uppercase;letter-spacing:.08em}
+  .kpi .pct{position:absolute;top:16px;right:16px;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--faint)}
+  .kpi.total:before{background:var(--plat)} .kpi.total .n{color:var(--plat)}
+  .kpi.deliv:before{background:var(--live)} .kpi.deliv .n{color:var(--live)}
+  .kpi.delay:before{background:var(--delay)} .kpi.delay .n{color:var(--delay)}
+  .kpi.track:before{background:var(--track)} .kpi.track .n{color:var(--track)}
+  .kpi.hold:before{background:var(--hold)} .kpi.hold .n{color:var(--hold)}
+  .kpi.churn:before{background:var(--churn)} .kpi.churn .n{color:var(--churn)}
+
+  /* ---------- cards ---------- */
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:14px;margin-bottom:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:26px}
+  .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);overflow:hidden}
+  .card .hd{display:flex;align-items:center;gap:9px;padding:15px 18px 13px}
+  .card .hd h2{font-family:"Space Grotesk",sans-serif;font-size:13.5px;font-weight:600;margin:0;flex:1;letter-spacing:-.01em}
+  .card .hd .dot{width:7px;height:7px;border-radius:2px;background:var(--plat)}
+  .card .hd .tag{font-size:10px;color:var(--faint);font-weight:500}
+  .card .bd{padding:6px 18px 18px}
+  .pill{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:7px;background:rgba(192,173,247,.12);color:var(--plat)}
+
+  /* donut */
+  .donut-wrap{display:flex;align-items:center;gap:20px;padding-top:6px}
+  .donut{width:108px;height:108px;flex:none;border-radius:50%;display:grid;place-items:center}
+  .donut .inner{width:80px;height:80px;border-radius:50%;background:var(--surface);display:grid;place-items:center;text-align:center}
+  .donut .inner b{font-family:"Space Grotesk",sans-serif;font-size:27px;color:var(--delay);line-height:1;letter-spacing:-.03em}
+  .donut .inner span{font-size:8.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+  .drleg{font-size:12.5px;color:var(--muted)}
+  .drleg .row{display:flex;align-items:center;gap:9px;margin:6px 0}
+  .drleg .sw{width:9px;height:9px;border-radius:3px}
+  .drleg .foot{color:var(--faint);font-size:11px;margin-top:10px}
+
+  /* bars */
+  .brow{display:grid;grid-template-columns:130px 1fr 30px;gap:11px;align-items:center;margin:10px 0;font-size:12.5px}
+  .brow .bl{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brow .bt{height:8px;border-radius:5px;background:var(--surface-3);overflow:hidden}
+  .brow .bf{height:100%;border-radius:5px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+  .brow .bn{font-family:"JetBrains Mono",monospace;font-weight:600;text-align:right;color:var(--text)}
+  .noteempty{color:var(--faint);font-size:12px;padding:20px 4px;line-height:1.6}
+  .noteempty b{color:var(--muted);font-weight:500}
+
+  /* tables */
+  .tablecard{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);overflow:hidden}
+  .tscroll{overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  thead th{position:sticky;top:0;background:var(--surface-2);color:var(--faint);text-align:left;font-weight:600;
+    font-size:10px;text-transform:uppercase;letter-spacing:.09em;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:2}
+  tbody td{padding:12px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  tbody tr{transition:background .1s;cursor:pointer}
+  tbody tr:hover{background:var(--surface-2)}
+  tbody tr.plat td:first-child{box-shadow:inset 3px 0 0 var(--plat)}
+  .pjt{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;letter-spacing:-.01em}
+  .sub-mono{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted)}
+  .chip{font-size:9.5px;font-weight:600;font-family:"JetBrains Mono",monospace;padding:3px 7px;border-radius:6px;letter-spacing:.03em;white-space:nowrap;display:inline-block}
+  .cat-Platinum{background:rgba(192,173,247,.13);color:var(--plat)} .cat-Gold{background:rgba(217,178,92,.13);color:var(--gold)}
+  .cat-Silver{background:rgba(183,194,212,.1);color:var(--silver)} .cat-Bronze{background:rgba(200,141,99,.12);color:var(--bronze)}
+  .cat-POC{background:rgba(66,184,204,.1);color:var(--brand)}
+  .stbadge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500}
+  .stbadge .sd{width:7px;height:7px;border-radius:50%}
+  .pr-Critical{background:rgba(242,100,127,.15);color:var(--churn)} .pr-High{background:rgba(244,177,60,.15);color:var(--delay)}
+  .pr-Medium{background:rgba(79,176,236,.14);color:var(--track)} .pr-Low{background:rgba(47,211,154,.13);color:var(--live)}
+  .dd{font-family:"Space Grotesk",sans-serif;font-weight:600}
+  .upd{color:#c0cde1;max-width:360px;line-height:1.5}
+  .upd.clip{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  /* controls */
+  .controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:16px}
+  .search{flex:1;min-width:210px;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;
+    padding:10px 13px;color:var(--text);font-family:inherit;font-size:13px}
+  .search::placeholder{color:var(--faint)} .search:focus{outline:none;border-color:var(--brand)}
+  .seg{font-size:11.5px;font-weight:500;padding:8px 12px;border-radius:8px;cursor:pointer;background:var(--surface);
+    border:1px solid var(--line-2);color:var(--muted);transition:.12s;user-select:none}
+  .seg:hover{color:var(--text);border-color:var(--faint)} .seg.on{background:var(--surface-3);color:var(--text);border-color:var(--brand)}
+  .lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);margin:0 3px}
+
+  /* tech */
+  .techgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .tcard{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);
+    padding:16px 17px;border-left:3px solid var(--delay)}
+  .tcard.resolved{border-left-color:var(--live);opacity:.78}
+  .tcard .th{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .tcard .tp{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14.5px;letter-spacing:-.01em}
+  .tcard .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+  .tag{font-size:9.5px;font-weight:600;font-family:"JetBrains Mono",monospace;padding:2.5px 7px;border-radius:6px}
+  .tag.open{background:rgba(244,177,60,.15);color:var(--delay)} .tag.res{background:rgba(47,211,154,.13);color:var(--live)}
+  .tag.c360{background:rgba(66,184,204,.12);color:var(--brand)} .tag.client{background:rgba(242,100,127,.14);color:var(--churn)}
+  .tcard .meta{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--faint);margin-top:10px}
+  .tcard .issue{font-size:12.5px;color:#c0cde1;margin-top:11px;line-height:1.55;white-space:pre-line}
+  .tcard .latest{font-size:12px;color:var(--muted);margin-top:11px;padding-top:11px;border-top:1px solid var(--line-soft);line-height:1.55}
+  .tcard .latest b{color:var(--text);font-weight:600}
+  .miniov{display:grid;grid-template-columns:repeat(5,1fr);gap:11px}
+  .mini{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:11px;padding:14px;text-align:center}
+  .mini .n{font-family:"Space Grotesk",sans-serif;font-size:23px;font-weight:600;letter-spacing:-.02em}
+  .mini .l{font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-top:6px}
+
+  .empty{text-align:center;padding:48px;color:var(--faint);font-size:13px}
+  footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--faint);
+    display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+
+  @media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}.grid3,.grid2{grid-template-columns:1fr}.techgrid{grid-template-columns:1fr}.miniov{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:560px){.wrap{padding:0 16px 60px}.appbar{margin:0 -16px 22px;padding:14px 16px}.kpis{grid-template-columns:repeat(2,1fr)}}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:9px}::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="appbar">
+    <div class="brand">
+      <div class="glyph"></div>
+      <div>
+        <h1>Chat360 · Delivery Board</h1>
+        <div class="sub"><b>Platinum-tier</b> delivery health · tech issues · full project tracker</div>
+      </div>
+    </div>
+    <div class="barctl">
+      <div class="sync"><span id="syncTime">—</span></div>
+      <span class="livechip" id="livechip"><span class="led"></span><span id="livetext">Snapshot</span></span>
+      <button class="btn" id="refresh">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="tab on" data-view="overview">Overview</div>
+    <div class="tab" data-view="tracker">Delivery Tracker <span class="cnt" id="tcnt">0</span></div>
+    <div class="tab" data-view="tech">Tech Issues <span class="cnt" id="ecnt">0</span></div>
+  </div>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section class="view on" id="v-overview">
+    <div class="eyebrow">Platinum portfolio</div>
+    <div class="kpis" id="kpis"></div>
+
+    <div class="eyebrow">Delivery risk</div>
+    <div class="grid3">
+      <div class="card">
+        <div class="hd"><span class="dot"></span><h2>Platinum delay rate</h2></div>
+        <div class="bd"><div class="donut-wrap">
+          <div class="donut" id="donut"><div class="inner"><b id="drVal">0%</b><span>delayed</span></div></div>
+          <div class="drleg" id="drLeg"></div>
+        </div></div>
+      </div>
+      <div class="card">
+        <div class="hd"><span class="dot"></span><h2 id="c2title">Delayed by priority</h2></div>
+        <div class="bd" id="c2body"></div>
+      </div>
+      <div class="card">
+        <div class="hd"><span class="dot"></span><h2 id="c3title">Delayed / on-hold by root cause</h2></div>
+        <div class="bd" id="c3body"></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="hd"><span class="dot"></span><h2>Delayed Platinum by CSM</h2></div>
+        <div class="bd" id="csmBody"></div>
+      </div>
+      <div class="card">
+        <div class="hd"><span class="dot"></span><h2>Delayed Platinum by bot builder</h2></div>
+        <div class="bd" id="bbBody"></div>
+      </div>
+    </div>
+
+    <div class="eyebrow">At-risk detail</div>
+    <div class="card" style="margin-bottom:26px">
+      <div class="hd"><span class="dot"></span><h2>Delayed &amp; on-hold Platinum</h2><span class="pill" id="detCnt">0</span></div>
+      <div class="tscroll">
+        <table><thead><tr>
+          <th>Project</th><th>CSM</th><th>PM</th><th>Bot Builder</th><th>Days</th><th>Priority</th><th>Root Cause</th><th>Latest Update</th>
+        </tr></thead><tbody id="detBody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="eyebrow">Engineering</div>
+    <div class="card">
+      <div class="hd"><span class="dot" style="background:var(--delay)"></span><h2>Tech issues overview</h2></div>
+      <div class="bd"><div class="miniov" id="techMini"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ TRACKER ============ -->
+  <section class="view" id="v-tracker">
+    <div class="controls">
+      <input class="search" id="trkSearch" placeholder="Search project, CSM, PM, bot builder…" />
+      <span class="lbl">Tier</span><div id="trkCat" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+      <span class="lbl">Status</span><div id="trkStatus" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+    </div>
+    <div class="tablecard"><div class="tscroll">
+      <table><thead><tr>
+        <th>Project</th><th>Tier</th><th>CSM</th><th>PM</th><th>Bot Builder</th><th>Phase</th><th>Status</th><th>Days</th><th>Priority</th><th>Root Cause</th><th>Latest Update</th>
+      </tr></thead><tbody id="trkBody"></tbody></table>
+    </div></div>
+  </section>
+
+  <!-- ============ TECH ============ -->
+  <section class="view" id="v-tech">
+    <div class="controls">
+      <input class="search" id="techSearch" placeholder="Search issue, project, owner…" />
+      <span class="lbl">Status</span><div id="techStatusF" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+      <span class="lbl">Owner</span><div id="techOwnerF" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+    </div>
+    <div class="techgrid" id="techBody"></div>
+  </section>
+
+  <footer>
+    <div style="max-width:680px">Live from the Chat360 Tracker · Platinum analytics computed in-browser. Priority &amp; root cause populate automatically once those columns exist in the source tab.</div>
+    <div class="mono" id="asof">—</div>
+  </footer>
+</div>
+
+<script>
+/* ===== LIVE CONFIG ===== */
+const LIVE = {
+  enabled: true,
+  mode: "api",
+  apiUrl: "https://script.google.com/macros/s/AKfycbyH4pw1cYTuJnWlaqzKPc3bh33pfvjFy0QbJHVzz8zPAzXbWuVjvwjeatN4MpuHFYw6/exec",
+  sheetId: "", trackerTab: "Delivery Tracker", techTab: "Tech Issues",
+  refreshMs: 0
+};
+const TRACKER_MAP = {"Project":"project","CSM":"csm","PM":"pm","Bot Builder / Owner":"bb","Category":"category","Tentative Go-Live":"tentative","Actual Go-Live":"actual","Project Phase":"phase","Delivery Status":"status","Days Delayed":"daysDelayed","Priority":"priority","Delay Root Cause":"rootCause","Latest Update":"update","Last Update Date":"lastUpdate"};
+const TECH_MAP    = {"Project":"project","PM":"pm","CSM":"csm","Issue Details":"issue","Timeline / ETA":"eta","Go-Live Date":"goLive","Status":"status","Issue Owner":"owner","Assigned To":"assignedTo","Latest Update":"update"};
+
+const SNAPSHOT_TRACKER = [{"project": "TRUST Group", "csm": "Ritika Thakre", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "09 Oct 2025", "actual": "09 Oct 2025", "phase": "Initiation", "status": "Delayed", "daysDelayed": "267", "priority": "Critical", "rootCause": "Client-Side Dependency", "update": "Blue tick approved, Ajinkya is speaking to the client for an inperson visit and to define what we can do next for more engagment.", "lastUpdate": "29th June"}, {"project": "Curebay", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Rohit", "category": "Gold", "tentative": "02 Jan 2026", "actual": "03 Jan 2026", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "182", "priority": "Critical", "rootCause": "Client-Side Dependency", "update": "Live but Client has shared changes, Chinmay is working on the solutioning document & flow, once ready we can share with client. It is still WIP by Chinmay & is going to share in this week. Akshay is creating the diagram currently. follow up taken on floor  & DM", "lastUpdate": "26th June"}, {"project": "Promilio", "csm": "Savitha S", "pm": "Tunir", "bb": "Musharraf", "category": "POC Free", "tentative": "27 Feb 2026", "actual": "", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "126", "priority": "Critical", "rootCause": "Commercial / PO Pending", "update": "Samarth has discussed commercials with the client separately over call, CSM is not marked on it. Client is reviewing other vendors also, they will connect with the CSM once they are ready as confirmed by Samarth previously. have informed CSM to drop email for the same. Highlighted to Raniji. Samarth confirmed client is not responding", "lastUpdate": "26th June"}, {"project": "Indiahikes", "csm": "Tanveer Saji", "pm": "Piyush", "bb": "", "category": "Gold", "tentative": "04 Mar 2026", "actual": "30 Sep 2025", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "121", "priority": "Critical", "rootCause": "Internal Dev / QA", "update": "Clinet have tested the bot , they are discussing internally for additions , they will update in next week", "lastUpdate": "8th May"}, {"project": "Waaree_Ecom", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Post go-live changes", "status": "Delayed", "daysDelayed": "110", "priority": "Critical", "rootCause": "Review Needed", "update": "Awaiting a reply on optimization plan. Solutions documents have been shared with Vishnu and awaiting a response since May.", "lastUpdate": "29th June"}, {"project": "Waaree_IST", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "110", "priority": "Critical", "rootCause": "Internal Dev / QA", "update": "On hold from Waaree's end since May and APIs are pending from Waaree. Multiple reminders sent over email and calls to Rohit. Currently, the channel is used for partner communication.", "lastUpdate": "29th June"}, {"project": "Waaree_LeadGen", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "110", "priority": "Critical", "rootCause": "Commercial / PO Pending", "update": "Arnab has shared the SOW with Anol & Yogendra on email. Waaree team to confirm and respond. Reminder shared.", "lastUpdate": "29th June"}, {"project": "Waaree_Loyalty", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "110", "priority": "Critical", "rootCause": "Internal Dev / QA", "update": "The API documentation is still pending.  This is pending since Feb. Multiple reminders were shared on the email and over calls to Rohit.", "lastUpdate": "29th June"}, {"project": "Tata Power", "csm": "Aaruni Vasu", "pm": "Komal", "bb": "", "category": "POC Free", "tentative": "20 Mar 2026", "actual": "05 Feb 2026", "phase": "Internal Testing", "status": "Delayed", "daysDelayed": "105", "priority": "Critical", "rootCause": "Internal Dev / QA", "update": "Musharraf is making chnages to the QA inputs by Yashaswi.", "lastUpdate": "29th June"}, {"project": "Club Mahindra (FAQ)_Enhancements", "csm": "Nikhil Bhagat", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "23 Mar 2026", "actual": "24 Mar 2026", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "102", "priority": "Critical", "rootCause": "Client-Side Dependency", "update": "Bot given for client UAT", "lastUpdate": "29th June"}, {"project": "Bajaj Housing Finance Limited_WA", "csm": "Pratap Kumar Verma", "pm": "Komal", "bb": "", "category": "POC Free", "tentative": "25 Mar 2026", "actual": "19 Sep 2025", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "100", "priority": "Critical", "rootCause": "Review Needed", "update": "Update from Subhodeep regarding WA bot- They will kick start the project in july end.", "lastUpdate": "29th June"}, {"project": "Bajaj Housing Finance Limited_GenAI_WA", "csm": "Pratap Kumar Verma", "pm": "Komal", "bb": "", "category": "POC Free", "tentative": "25 Mar 2026", "actual": "19 Sep 2025", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "100", "priority": "Critical", "rootCause": "Review Needed", "update": "Update from Subhodeep regarding WA bot- They will kick start the project in july end.", "lastUpdate": "29th June"}, {"project": "Baskin & Robbins", "csm": "Ritika Thakre", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "25 Mar 2026", "actual": "16 Mar 2026", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "100", "priority": "Critical", "rootCause": "Review Needed", "update": "Brinold is back in action and will convey the feedbacks soon. Dropped a reminder email and WA to Rushikesh on the group, Ritika had called and response is expected by CEO after one final test from their CEO’s end is pending before going live, go-live will be confirmed by Brinold.", "lastUpdate": "29th June"}, {"project": "PSRI", "csm": "Arnab Chakraborty", "pm": "Piyush", "bb": "", "category": "Gold", "tentative": "30 Mar 2026", "actual": "01 Apr 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "95", "priority": "Critical", "rootCause": "Client-Side Dependency", "update": "Module change going on at client's end, once done they will be letting us know so that we can proceed with the base 64 dev and also, they will be providing the APIs for the whatsapp bot", "lastUpdate": "25th May"}, {"project": "Adani Airports", "csm": "Ishu Rustagi", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "20 Apr 2026", "actual": "29 Apr 2026", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "74", "priority": "High", "rootCause": "Client-Side Dependency", "update": "WA Bot - Client testing feedback WIP, eod. Web - Internal testing WIP. Web UI mockups - v3 provided, negative feedbacks, meeting on Tue", "lastUpdate": "29th June"}, {"project": "YODA", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "Atharva", "category": "", "tentative": "22 Apr 2026", "actual": "30 Apr 2026", "phase": "Bot building", "status": "Delayed", "daysDelayed": "72", "priority": "High", "rootCause": "Internal Dev / QA", "update": "Flow is Completed , integration is pending now", "lastUpdate": "2nd July"}, {"project": "LearningShala", "csm": "Akshita Verma", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "25 Apr 2026", "actual": "17 Jan 2026", "phase": "Initiation", "status": "Delayed", "daysDelayed": "69", "priority": "High", "rootCause": "Review Needed", "update": "Cleint is not responding to CSM calls", "lastUpdate": "5th June"}, {"project": "BPL MedTech", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "Sliver", "tentative": "25 Apr 2026", "actual": "20 Sep 2025", "phase": "Go-live readiness", "status": "Delayed", "daysDelayed": "69", "priority": "High", "rootCause": "Third-Party Vendor Dependency", "update": "problem at meta end", "lastUpdate": "2nd July"}, {"project": "Simple Energy", "csm": "Savitha S", "pm": "Komal", "bb": "", "category": "POC Paid", "tentative": "30 Apr 2026", "actual": "01 Jul 2026", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "64", "priority": "High", "rootCause": "Client-Side Dependency", "update": "Last week, we had a call with the client to discuss the API integration requirements. We need to share the API cURL details with the client today, post which they will share the APIs that need to be integrated", "lastUpdate": "29th June"}, {"project": "Jeep India & Citroen India - Stellantis", "csm": "Nikhil Bhagat", "pm": "Tunir", "bb": "Deepak & Gaurav", "category": "Platinum", "tentative": "07 May 2026", "actual": "13 Nov 2023", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "57", "priority": "High", "rootCause": "Review Needed", "update": "PO for Citreon has not yet been received. Sabu is following up.  Daily Campaigns Live + 2 new campaigns for offers", "lastUpdate": "29th June"}, {"project": "Liquide Life", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "POC Free", "tentative": "15 May 2026", "actual": "", "phase": "Bot building", "status": "Delayed", "daysDelayed": "49", "priority": "High", "rootCause": "Review Needed", "update": "few chnages have been recived from clinet will take up today", "lastUpdate": "2nd July"}, {"project": "Arka", "csm": "Arnab Chakraborty", "pm": "Piyush", "bb": "Athrav,Abhijeet Malayli", "category": "Platinum", "tentative": "19 May 2026", "actual": "25 May 2026", "phase": "Bot building", "status": "Delayed", "daysDelayed": "45", "priority": "High", "rootCause": "Client-Side Dependency", "update": "Web: The web bot was live and functioning correctly. However, the parent company of Arka has raised an objection regarding the footer displaying \"Powered by Chat360.io\".  WhatsApp: The static flow has been completed. The dynamic WhatsApp forms are still pending, and Gaurav has been aligned to work on them.  SFTP: We tested the SFTP integration, and it was working as expected. However, an issue was identified with the English and Hindi voice bots. Abhijit is currently working on resolving it.  Voice : Voice bots for all the remaining languages will be delivered to the client today.", "lastUpdate": "2nd July"}, {"project": "Hyundai Motors", "csm": "Sana Naaz", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "28 May 2026", "actual": "", "phase": "Post go-live changes", "status": "Delayed", "daysDelayed": "36", "priority": "High", "rootCause": "Internal Dev / QA", "update": "There are chnages in the two flows rohit is working on them", "lastUpdate": "2nd July"}, {"project": "Hyundai Mobis", "csm": "Sana Naaz", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "01 Jun 2026", "actual": "", "phase": "Integration", "status": "Delayed", "daysDelayed": "32", "priority": "High", "rootCause": "Internal Dev / QA", "update": "We will Show UI -UX on staging , review meet tomorrow, post approval we will make it live as per the new timelines which will be decided after approval .", "lastUpdate": "2nd July"}, {"project": "Piramal", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Paresh", "category": "POC Free", "tentative": "02 Jun 2026", "actual": "03 Jun 2026", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "31", "priority": "High", "rootCause": "Client-Side Dependency", "update": "Shared to client for UAT, CSM is dropping mail for the same to client as discussed, have followed up with Ajinkya as well for POC ending status & onboarding, he will get back , follow up taken, client visit is getting scheduled for the same. confirmed with ajinnkya on floor today", "lastUpdate": "26th June"}, {"project": "Nandan Groups_Enhancements (post go-live)", "csm": "Sana Khan", "pm": "Komal", "bb": "Ritika Sen", "category": "Bronze", "tentative": "25 Jun 2026", "actual": "", "phase": "Internal Testing", "status": "Delayed", "daysDelayed": "8", "priority": "Medium", "rootCause": "Internal Dev / QA", "update": "Internal QA in WIP", "lastUpdate": "29th June"}, {"project": "LIC", "csm": "Nain Titoria", "pm": "Tunir", "bb": "Siddharth & Omkar", "category": "Platinum", "tentative": "29 Jun 2026", "actual": "02 Jun 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "4", "priority": "Low", "rootCause": "Third-Party Vendor Dependency", "update": "Modifications received from business team of Kfintech, Omkar is checking & will confirm on ETA", "lastUpdate": "2nd July"}, {"project": "Borosil", "csm": "Abhishek Yadav", "pm": "Tunir", "bb": "Musharraf", "category": "Gold", "tentative": "30 Jun 2026", "actual": "", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "3", "priority": "Low", "rootCause": "Client-Side Dependency", "update": "musharraf has completed the issues & with internal UAT. shared to client for UAT, waiting to hear back to connect on same. POC is OOO", "lastUpdate": "2nd July"}, {"project": "JP Infra", "csm": "Nikhil Bhagat", "pm": "Tunir", "bb": "Musharraf & Vedant", "category": "Platinum", "tentative": "30 Jun 2026", "actual": "", "phase": "Bot building", "status": "Delayed", "daysDelayed": "3", "priority": "Low", "rootCause": "Internal Dev / QA", "update": "\"Non API Voice flow is working fine, all the issues have been fixed  API flow work has begun. The team was facing an api error, which is now sorted. @Musharaf Dawooth is working on it & have added all the delivery dates for API driven flows on the pre-requisite sheet which is 30th June, sharing for internal UAT today  We have shared a flowchart with Kajal for Agentic AI for the chatbots. It is approved & Vedant is working on BB, we have shared date as 30th June for delivery, sharing for internal UAT today", "lastUpdate": "26th June"}, {"project": "Hiranandani", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Deepak & Aryan", "category": "Platinum", "tentative": "01 Jul 2026", "actual": "02 Jun 2026", "phase": "Bot building", "status": "Delayed", "daysDelayed": "2", "priority": "Low", "rootCause": "Client-Side Dependency", "update": "Shared all 5 bots to client for UAT with data training done   Main bot script is shared with client to make the bot live & other bots are shared with client for UAT. Aryan & Arnab went on client visit to make the bots live but There are changes requested by client. And some parts are not aligned with their requirements. So Aryan will make these changes and share it by tomorrow", "lastUpdate": "29th June"}, {"project": "TVS Credit Lead Gen", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "Musharraf", "category": "Platinum", "tentative": "02 Jul 2026", "actual": "", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "1", "priority": "Low", "rootCause": "Client-Side Dependency", "update": "I have shared RCA & timelines in the excel sheet as client requested. The updates are done & pushed to production now.  Have dropped email to client for the same & UAT", "lastUpdate": "26th June"}, {"project": "Autovista - In house voice bot", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Aditya & Vedant", "category": "Bronze", "tentative": "02 Jul 2026", "actual": "25 Oct 2025", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "1", "priority": "Low", "rootCause": "Client-Side Dependency", "update": "\"Feasibilty doc shared with Irwin, & call is done, we shared go live dates for each developements having pendency at our end, swastik will take follow up on pendencies as discussed with Raniji, follow up taken on group with Irwin to share priority developements list  Other than this we have received additional chatbot & voicebot request on which i have assigned BB;s & shared to client for UAT on mail, follow up taken on group & mail\"  We have now received feedback on voice sales bot, pranav jakkani is checking  & fixing the issues", "lastUpdate": "26th June"}, {"project": "Motilal HR", "csm": "Nain Titoria", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "31 Mar 2026", "actual": "10 Oct 2025", "phase": "Not responding/ Sales", "status": "On Hold", "daysDelayed": "", "priority": "", "rootCause": "On Hold / Mgmt Decision", "update": "The client has requested us to develop the API from our end. This would be an additional scope item and should be commercially evaluated.  Sabu needs to align with Shivam regarding the SOW and commercials. Once the scope and commercials are finalized, we can proceed with the development.", "lastUpdate": "5th June"}, {"project": "Audi India", "csm": "Nikhil Bhagat", "pm": "Tunir", "bb": "Musharraf & Deepak", "category": "Platinum", "tentative": "08 May 2026", "actual": "13 Jun 2023", "phase": "On Hold", "status": "On Hold", "daysDelayed": "", "priority": "", "rootCause": "On Hold / Mgmt Decision", "update": "Voice is on hold, Rohit was working on agentic AI bot as requested by samarth & finished it, further updates are pending from client. for now the project is on HOLD until further notice as confirmed by Raniji", "lastUpdate": "29th June"}, {"project": "Adi Aarogyam Hospital", "csm": "Sana Khan", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "06 Mar 2026", "actual": "07 Nov 2025", "phase": "On Hold", "status": "On Hold", "daysDelayed": "", "priority": "", "rootCause": "On Hold / Mgmt Decision", "update": "Website bot is working fine They will complete the payment once they receive the approval from their head Sana to visit in person to discuss on Whatsapp bot whenever they are available.", "lastUpdate": "29th June"}, {"project": "Enrich Beauty_Existing users_Bot", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "09 Jun 2026", "actual": "", "phase": "On Hold", "status": "On Hold", "daysDelayed": "", "priority": "", "rootCause": "On Hold / Mgmt Decision", "update": "Bot 2: (Reaching existing users) Until the clarification of Bot 1, bot 2 is under internal discussion.", "lastUpdate": "29th June"}, {"project": "Manish Malhotra", "csm": "Abhishek Yadav", "pm": "Tunir", "bb": "Abinash", "category": "Gold", "tentative": "17 Jul 2026", "actual": "", "phase": "Integration", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The client has asked to check live chats on Zoho which is not possible from our & Zoho's end. Abinash is aware on this & we have informed the same to client as well. Zoho team & client discussing internally to solve this blocker, POC is OOO, will connect once back, follow up taken they will connect on 7th July", "lastUpdate": "2nd July"}, {"project": "HOH - OMR", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Rohit", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "06 Feb 2025", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "This is in Client UAT. Client will make this live once all 5 Gen AI bots are live", "lastUpdate": "29th June"}, {"project": "VTP Realty", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Rohit & Gaurav", "category": "Platinum", "tentative": "27 Jul 2026", "actual": "18 Mar 2026", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "We have shared master bot Gen AI for testing to client, once that is approved we will shift all 13bots to Gen AI. For now client is more focused on campaigns & will update in next week for the main bot, have highlighted to Sales to expedite", "lastUpdate": "29th June"}, {"project": "Tafe Skoda_WA_GenAI", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "", "actual": "", "phase": "Post go-live changes", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Static WA is live - Gen AI discussion will be scheduled on Thursday as confirmed by the client.", "lastUpdate": "29th June"}, {"project": "TATA (TAFE)_WA_GenAI", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "", "actual": "", "phase": "Post go-live changes", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Static WA is live - Gen AI discussion will be scheduled on Thursday as confirmed by the client.", "lastUpdate": "29th June"}, {"project": "PNB", "csm": "Aryaman Sagar", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "", "actual": "17 Jun 2026", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Not started as it is pending for the aproval from the infosec team", "lastUpdate": "2nd July"}, {"project": "JCB", "csm": "Ishu Rustagi", "pm": "Tunir", "bb": "Siddharth", "category": "Platinum", "tentative": "15 Jul 2026", "actual": "", "phase": "Bot building", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "we are building a WhatsApp chatbot with Salesforce (SFDC) integration for JCB India.  Key Decisions Made 1. WhatsApp Number: Proceed with the existing live number (+91 9289996484) — no new number needed. 2. Bot Flow: JCB (Saranjeet) confirmed it should be a multilingual bot (English + 9 languages) mirroring the full website bot flow, not a simpler structure. At every callback step, the bot must collect: Name, Mobile, and Preferred Language. 3. SFDC Integration: A separate UAT account will be created on the Chat360 dashboard (using Saranjeet's email and mobile: 98992 36156) rather than the existing JCB admin production account. 4. Sequencing: WhatsApp bot go-live takes priority; SFDC integration follows (can run in parallel if bandwidth allows).  Open Items / Pending Actions  1. For UAT, JCB will provide a testing WhatsApp number and website 2.SFDC integration discussions with JCB's UK team to be coordinated in parallel 3. An in-person meeting in Delhi was proposed for the following week  We had a call with client & received the details, siddharth is working on the english language first along with Atharv, & is going to deliver today, after that he will pick up the other languages.   B. Find a Dealer - Find dealer API - pending  C. Contact Support Details", "lastUpdate": "29th June"}, {"project": "Unicommerce", "csm": "Ishu Rustagi", "pm": "Tunir", "bb": "Abinash", "category": "Platinum", "tentative": "09 Jul 2026", "actual": "27 Jun 2026", "phase": "Go-live readiness", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "we have been following up on email for making the bots go live. client confirmed that they need to modify the ticket allocation logic in Kapture before proceeding with the Chat360 go-live.  they are currently reviewing this internally and will keep us posted on the progress. highlighted to Raniji & tunir have dropped follow up mails as well. POC Shubham not responding, follow up mail dropped, Sabu is checking on this, follow up dropped", "lastUpdate": "29th June"}, {"project": "Gera Developers", "csm": "Nain Titoria", "pm": "Tunir", "bb": "Rohit & Gaurav", "category": "Platinum", "tentative": "15 Jul 2026", "actual": "", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Had a discussion with Hakim. The only pending item from their end is the additional FAQ content required for bot training. He mentioned that they are currently occupied with another project launch and expect to share the FAQs by the first week of July.  Accordingly, their target go-live date is now around 15th July.  He also requested sales team to connect with him regarding the live chat enhancement development so that those requirements can be addressed in parallel. Looped ajinkya on this, this will be done in 1st week on july, follow up mail dropped for the same. asked ajinkya to follow up again on floor", "lastUpdate": "2nd July"}, {"project": "Pride Purple", "csm": "Nain Titoria", "pm": "Tunir", "bb": "Vedant", "category": "Gold", "tentative": "17 Jul 2026", "actual": "", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "To proceed with the development and configuration of the WhatsApp chatbot, we need the following details and supporting materials from client, call is done with the client & they have shared the requirements,   pending confirmation regarding the WhatsApp number one received, we can proceed with the next steps. follow up taken on this  Need separate WhatsApp numbers for  1. Pre-Sales Chatbot 2. Post-Sales Chatbot 3. CRM Chatbot", "lastUpdate": "2nd July"}, {"project": "Club Mahindra (Main Bot)", "csm": "Nikhil Bhagat", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "57 out of 64 failed scenarios shared by Vikaas are working fine and confirmed by Sandeepan. remaining 6 WIP, 1 to be confirmed by CM Team.", "lastUpdate": "29th June"}, {"project": "Adani Realty", "csm": "Nikhil Bhagat", "pm": "Tunir", "bb": "Deepak & Siddharth Singh", "category": "Platinum", "tentative": "27 Aug 2026", "actual": "31 Dec 2025", "phase": "Bot building", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Website & Whatsapp Chatbot Enhancement -   1. Model switch from GPT 4.8 to GPT 5 or newer to meet the client's expectations. For eg. Eg: Highlight key project differentiators and factual data points instead of paragraphs. 2. Deepak working to re-prompt & along with a developer, to verify the data  3. @Siddharth Gupta - GenAI - Chat360 to assist fine tune the prompt  Timeline 1. We've started on this enhancement work and shall be delivered for UAT by 22nd. Currently the changes are done & in client UAT     Voice Bot ------------------------------------------------------------------->>>>  Timelines shared on email for Voice developements what's excluded from the timelines -  The timelines do not include set-up with Platinum One integration and usage of their phone numbers. The timeline below encompasses the utilisation of Chat360 Phone Numbers for outbound calling POC testing. The timelines do not cover any custom requirements for analytics developments and only encompasses the base reports provided by Chat360, as well as the base variables captured as per the flow during the voicebot call. Post-call CRM integration is included as per the scope. Any other integrations that are out of the scope (post-call or in call)  shall revise the scope and timelines.    Here are additional discussion points for which we need a meeting.   1.Private cloud deployment, including data-sharing requirements.  2.Define chatbot KPI requirements for integration with the CDP, along with AI-generated chat summaries and analytics requirements.  3.User profile storage and management to maintain conversational context across interactions. - Primary Key: Phone Number (shall be defined as per the scope)  4.WhatsApp Calling and associated data storage requirements.  5.Finalise the requirement for post-call integration and data push mechanisms. (Voice)", "lastUpdate": "26th June"}, {"project": "Mahindra - Free POC", "csm": "Nikhil Bhagat", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "", "actual": "13 Apr 2023", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Nova it the poc is out of India. He will be back next to next week.", "lastUpdate": "14th May"}, {"project": "Sahyadri Hospital (Appointment Gen.)", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "Musharraf", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "appointment booking is live. LSQ integration is done, cancellation & reschedule is also working fine. Shared to client for UAT. Meeting with client done  POC is changed for the same, we will get details on mails for it . Had a word with Rohan and Satyawan, shared the bot with keyword for testing, few changes might be required. Client will share those details and accordingly we will take up. follow up taken on this on mail", "lastUpdate": "26th June"}, {"project": "TVS Credit Agentic AI Bot", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "Rohit & Aryan & Balajee", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "", "phase": "Integration", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "key action items and next steps:  1. TVS Team to share the master mapping document containing the Product Codes and their corresponding Product Names that will be passed through the API. 2. Chat360 Team will train the bot based on the shared master mapping. As a fallback mechanism, in cases where a Product Code is unavailable or cannot be mapped, the bot will attempt to identify and suggest the relevant product based on the available information. 3. TVS Team to schedule a discussion with the PA Base API stakeholders to address and clarify the required API parameters and any related queries. TSV team will share master mapping and proposed meeting schedule at their convenience so that we can proceed with the bot configuration accordingly. follow up mail dropped for the same follow up taken on mail on this, client internal discussion happening on same, follow up taken with Sales (Akash) as well", "lastUpdate": "26th June"}, {"project": "TVS Credit HR Voice Bot", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "Musharraf", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "", "phase": "Integration", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "TVS team needs to provide API end point to fetch the employee leave balance. follow up taken on this, internal Mail is floated by niharika to speed up on this, we have discussed & followed up with (AKash) with Sales as well, we are taking countinue follow up on this", "lastUpdate": "26th June"}, {"project": "Shapoorji Pallonji", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Rohit", "category": "Bronze", "tentative": "03 Jul 2026", "actual": "08 Dec 2025", "phase": "Go-live readiness", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "- - Sent sheet & revised flow including bot to Siddhi (new POC) for master bot that was build by Jigar- Awaiting siddhi's feedback.  following up with ajinkya everyday on floor, client confirmed that they will run the campaign. taking regular follow up on this, client has asked to schedule a call for the same with new POC, follow up mail shared by tunir, client reverted that there is no further requirement & changes, CSM will connect with ajinkya for pending invoices & make the changes live once done.   They are merging their websites & asked to connect in Mid july & share some of our work with respect to agentic services. CSM & Sales will connect with them on next week & pitch the products.spoke with Samarth & ajinkya on floor on this", "lastUpdate": "26th June"}, {"project": "Royal Enfield", "csm": "Sana Naaz", "pm": "Piyush", "bb": "", "category": "POC Free", "tentative": "", "actual": "", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Divyanshi is discussing on the commercials with client", "lastUpdate": "26th May"}, {"project": "DLPL", "csm": "Sana Naaz", "pm": "Tunir", "bb": "Siddharth/Gupta/Musharraf/Aditya/Manas", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "17 Jun 2026", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "marketing & businees team approval pending, today live for whatsapp   Web  all good  endpoint needs whitelisting for voice", "lastUpdate": "2nd July"}, {"project": "Hexahealth", "csm": "Sana Naaz", "pm": "Tunir", "bb": "Abinash", "category": "Sliver", "tentative": "17 Jul 2026", "actual": "", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Client was facing issue for whatsapp bot for which we have given them RCA yesterday   also client is looking to set up a FB Messenger Chatbot with us and the SOW for this has been shared by @Surya Prakash.  Please find the link to access: https://docs.google.com/document/d/1kgphORxP7upr7sASOq0Qzxe3EQHITCVCnSInVMNTRJ4/edit?usp=sharing  Spoke with Akash on this, we have closed the discussion from our end, waiting from final update from Amit. Akash has connected with client & they will give clarity by end of this week, follow up taken on this, this is on HOLD as confirmed by Akaah Hashia", "lastUpdate": "2nd July"}, {"project": "Provident Housing", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "", "actual": "21 Jan 2026", "phase": "Post go-live changes", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Blue well flow is done  Northen lights will be completed by tommorow", "lastUpdate": "2nd July"}, {"project": "Marshalls", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Paresh", "category": "Sliver", "tentative": "03 Jul 2026", "actual": "", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Shared to client for UAT, tried to connect with client over call for feedback but not received, follow up mail dropped already", "lastUpdate": "26th June"}, {"project": "Restroworks - Possist", "csm": "Tanveer Saji", "pm": "Tunir", "bb": "Deepak & Ritik & Siddharth Singh", "category": "POC Paid", "tentative": "31 Aug 2026", "actual": "22 Sep 2025", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Timeline given to chinmay & Tanveer as 28th august, chinmay will connect & confirm on this with client. once received green signal on this from client we will start with developements, follow up taken on this  on floor", "lastUpdate": "26th June"}, {"project": "Eurokids - Lighthouse Learning", "csm": "Abhishek Yadav", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "", "actual": "28 Jan 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "EuroSchool", "csm": "Abhishek Yadav", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "23 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Chnage in API requested by Client have alligned Karan for it", "lastUpdate": "2nd July"}, {"project": "Hamilton housewear", "csm": "Abhishek Yadav", "pm": "Piyush", "bb": "", "category": "Gold", "tentative": "", "actual": "24 Oct 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "JMFL", "csm": "Abhishek Yadav", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "", "actual": "21 Apr 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Advant", "csm": "Akshita Verma", "pm": "Tunir", "bb": "Deepak", "category": "Sliver", "tentative": "16 Apr 2026", "actual": "16 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live", "lastUpdate": "2nd July"}, {"project": "Doc Online", "csm": "Akshita Verma", "pm": "Tunir", "bb": "Rohit & Balaji", "category": "Platinum", "tentative": "09 May 2026", "actual": "30 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Simply Jet", "csm": "Akshita Verma", "pm": "Komal", "bb": "", "category": "Sliver", "tentative": "05 May 2026", "actual": "03 Jul 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "HOH - Eli", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Nikhil", "category": "Platinum", "tentative": "10 Mar 2026", "actual": "05 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Madhavbaug Voice Bot", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Musharraf", "category": "Gold", "tentative": "30 Apr 2026", "actual": "20 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "chatbot is live, Voice bot project dropped by Madhavbaug", "lastUpdate": "29th June"}, {"project": "Tafe Skoda_Static WA", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "25 Feb 2026", "actual": "09 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Static bot was live in March", "lastUpdate": "29th June"}, {"project": "TATA (TAFE)_Static WA", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "25 Feb 2026", "actual": "09 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Static bot was live in March", "lastUpdate": "29th June"}, {"project": "Waaree_Meta", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "SS group", "csm": "Aryaman Sagar", "pm": "Piyush", "bb": "", "category": "", "tentative": "", "actual": "16 Jun 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Motilal HFC", "csm": "Nain Titoria", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "25 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Testbook", "csm": "Nain Titoria", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "24 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Everything is live", "lastUpdate": "29th June"}, {"project": "Club Mahindra (FAQ)", "csm": "Nehha Baagwe", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "23 Mar 2026", "actual": "24 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "Club Mahindra (FIT Project)", "csm": "Nehha Baagwe", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "05 May 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "SDL India", "csm": "Abhishek Yadav", "pm": "Tunir", "bb": "Pranav", "category": "Sliver", "tentative": "16 Feb 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "Club Mahindra - Experience", "csm": "Nikhil Bhagat", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "09 Apr 2026", "actual": "14 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "- Vineet has called out to shut down the experiences bot services since there is no ROI - We suggested to upgrade with Agentic AI, though the cost shared is not acceptable - Shivam to speak with Vineet regarding the cost communication & clarify the earlier set expectation.", "lastUpdate": "29th June"}, {"project": "Bajaj Housing Finance Limited_Website", "csm": "Pratap Kumar Verma", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "25 Mar 2026", "actual": "19 Sep 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live since Aug", "lastUpdate": "29th June"}, {"project": "Eicher Tractors (TMTL)", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "", "category": "Platinum", "tentative": "", "actual": "01 Jan 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "IIFL Samasta", "csm": "Pratap Kumar Verma", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "30 Mar 2026", "actual": "10 Jan 2023", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Lifelong", "csm": "Pratap Kumar Verma", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "13 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Aashirwad Chakki", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Deepak", "category": "Platinum", "tentative": "30 Jan 2026", "actual": "07 Nov 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "CUTM", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Musharraf", "category": "Platinum", "tentative": "02 Feb 2026", "actual": "15 Jul 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "ITC- Million Fantasies", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Ritika", "category": "Platinum", "tentative": "30 Jan 2026", "actual": "30 Jan 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "ITC- Valentine Fantastik", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Ritika", "category": "Platinum", "tentative": "07 Feb 2026", "actual": "07 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "Wealthstreet Financial Services", "csm": "Ritika Thakre", "pm": "Komal", "bb": "", "category": "Gold", "tentative": "27 Feb 2026", "actual": "25 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live(Web & WA Bot), emails sent.", "lastUpdate": "29th June"}, {"project": "Ishna wheels", "csm": "Sana Khan", "pm": "Komal", "bb": "Sana", "category": "Gold", "tentative": "07 May 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Campaign & WA went live on 3rd June.", "lastUpdate": "29th June"}, {"project": "Woop world", "csm": "Sana Khan", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "28 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Kapil salon", "csm": "Sana Khan", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "24 Mar 2026", "actual": "18 Oct 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Chola", "csm": "Sana Naaz", "pm": "Tunir", "bb": "Abinash", "category": "Platinum", "tentative": "22 Jun 2026", "actual": "16 Jun 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Chola Telecalling", "csm": "Sana Naaz", "pm": "Tunir", "bb": "Abinash", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "27 Jan 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live but client has asked for some custom developements for this aaruni connected with client to gather requirements. there are some internal critical issue is going on & discussions happening after that they will inform us in this week. accordingly we can share the commercials with client, follow up taken on this on group & DM, client has asked to Hold for now", "lastUpdate": "26th June"}, {"project": "CMR", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "20 Apr 2026", "actual": "16 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Dr. Mohan's", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "25 May 2026", "actual": "16 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Enrich Beauty_new user bot", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "20 Mar 2026", "actual": "17 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "Mulugu Collectorate", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Gold", "tentative": "", "actual": "14 Jan 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The bot is live", "lastUpdate": "29th June"}, {"project": "Healpath", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "24 Feb 2026", "actual": "20 Nov 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "IKF Home", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "", "category": "Sliver", "tentative": "25 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "IndiQube", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "", "category": "Gold", "tentative": "11 Mar 2026", "actual": "23 Jan 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Saheel Properties", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Sliver", "tentative": "16 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "Mtek", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "", "category": "Sliver", "tentative": "", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "LIve", "lastUpdate": "2nd July"}, {"project": "Astral - Adhesive", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Deepak", "category": "Sliver", "tentative": "05 Feb 2026", "actual": "05 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The bot is live", "lastUpdate": "2nd July"}, {"project": "Astral - Trubuild", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Deepak", "category": "Sliver", "tentative": "01 Aug 2025", "actual": "01 Aug 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The bot is live", "lastUpdate": "2nd July"}, {"project": "Bramhacorp", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Vedant", "category": "Sliver", "tentative": "03 Jun 2026", "actual": "03 Jun 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live, but client has asked for iframe integration. ajinkya will share commercials for this. spoke with him on floor for the same, follow up taken on floor", "lastUpdate": "26th June"}, {"project": "Mana Projects", "csm": "Tanveer Saji", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "12 Sep 2025", "actual": "20 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "This is Live", "lastUpdate": "29th June"}, {"project": "Mana Projects_TRL", "csm": "Tanveer Saji", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Request raised with meta - regarding waba restriction", "lastUpdate": "29th June"}, {"project": "Ultraviolette", "csm": "Tanveer Saji", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "10 Sep 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The Bots are live", "lastUpdate": "29th June"}, {"project": "Hippo Stores", "csm": "Akshita Verma", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "26 Feb 2026", "actual": "23 Apr 2024", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Operations are closing, the company is winding up, and the account will be closed.", "lastUpdate": "6th April"}, {"project": "Terrace", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Abinash", "category": "Bronze", "tentative": "29 Apr 2026", "actual": "31 Mar 2026", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "\"We have updated client that the devs cannot be done.   With regard to the pending payment, we informed on call that we won't do developements until the pending payments are done. Client is not ready to pay & it is confirmed from shivam on floor, neither to do any developements & nor to give response to the client", "lastUpdate": "29th June"}, {"project": "Sunrise Hospital", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "", "actual": "31 Mar 2026", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Client ghosted on go-live ready stage, even no response to Sabu. To confirm churn on email with Sabu. infomed the same to him", "lastUpdate": "29th June"}, {"project": "Manipal Cigna Health Insurance", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "", "category": "POC Free", "tentative": "", "actual": "", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "\"Status : the account is churned as confirmed by prathamesh Blocker : we have shared voice bot to client but there were few issues, & after that client stopped responding, the case is with Prathamesh. Next Steps : Client has asked to follow after a month or two", "lastUpdate": "29th June"}, {"project": "VyshaTech Solutions LLP", "csm": "Ritika Thakre", "pm": "Komal", "bb": "", "category": "Gold", "tentative": "16 Dec 2025", "actual": "06 Jan 2026", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Churned", "lastUpdate": "29th June"}, {"project": "Blue star", "csm": "Samarth Sharma", "pm": "Tunir", "bb": "Musharraf", "category": "POC Paid", "tentative": "04 Apr 2026", "actual": "07 Feb 2026", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Client is not going to countinue with us, confirmed on mail & on floor with Divyanshi same has been informed to Raniji", "lastUpdate": "26th June"}, {"project": "Lets Transport", "csm": "Savitha S", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "04 May 2026", "actual": "31 Oct 2025", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Received an email from the client  that,  current business model doesn't quite align with there specific requirements at this stage of there growth. For that reason, they won't be able to move forward with a partnership right now.", "lastUpdate": "29th June"}, {"project": "Simpel AI", "csm": "Savitha S", "pm": "Komal", "bb": "", "category": "POC Free", "tentative": "25 Apr 2026", "actual": "", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Shivam has asked Ajinkya to keep this project on hold for now", "lastUpdate": "29th June"}, {"project": "Sugar Cosmetics", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "22 May 2025", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Churned, confirmed from sales on email.", "lastUpdate": "29th June"}];
+const SNAPSHOT_TECH    = [{"project": "DLPL", "pm": "Tunir", "csm": "Sana Naaz/Aryaman", "issue": "1. Web Live Chat issues are highlighted by Client\n\n2. WhatsApp channel for Production is now live \n\n3. Voice Bot is in production setup phase", "eta": "Delivery Date - 30th June", "goLive": "Partially Live", "status": "Open", "owner": "Client", "assignedTo": "Siddharth gupta/Manas/Prathamesh/Ritwik/Shounak", "update": "Web- 1. Mis and dashboard not mattching - Abinash is checking on this with prathamesh to resolve  Voice- The KB integration is complete. Qdrant has been configured, and the bot namespace is set up. The backend/MCP integration is also complete. The DLPL Azure bot on prod has been migrated end-to-end"}, {"project": "TVS Lead Gen", "pm": "Tunir", "csm": "Pratap", "issue": "We had call with Client  & below issues/requirements were highlighted from client:\n\n1. filler words are repetative, previous call was good, but now its not correct\n2. Initially when bot asked for language preferance, it said English or Hindu instead of Hindi\n3. Price reply given by bot is 128 thousand but it should say 1 lakh 28 thousand like this\n4. When user replied \"Talwar\" to the bot it took Patna as city at the time of Pincode & city mapping\n5. User must get informed if he/she is eligible for loan after providing details\n6. Add end question - if you have any question/ can we conclude call before closing the call\n7. As per the time of the day, but should reply good morning/afternoon/evening accordingly", "eta": "Delivery Date - 30th June", "goLive": "2nd July \n(tentative)", "status": "Open", "owner": "Chat360", "assignedTo": "Musharraf/Shounak/Sai", "update": "All the first 5 feedbacks are done from Musharraf, only feedback pending is to add end question before concluding the call, once that is done we can perform UAT & share with client"}, {"project": "Club Mahindra (Main Bot)", "pm": "Komal", "csm": "Nikhil Bhagat", "issue": "Feedbacks awaited and schedule on mutual client testing at their office", "eta": "ETA - yet to receive", "goLive": "25th Jun (tentative)", "status": "Resolved", "owner": "Chat360", "assignedTo": "Varun & Sid N. - null response\nRajeev - UI", "update": "- All 64 failed scenarios shared by Vikaas are working fine and shared the sheet with remarks and status with Vikaas & Sandeepan. - Sandeepan confirmed mutual testing meeting at Mumbai office at 3:30pm tomorrow."}, {"project": "Adani Airports_Website Bot", "pm": "Komal", "csm": "Ishu", "issue": "Timelines are delayed due to QA bandwidth", "eta": "ETA - yet to receive", "goLive": "1-3rd July", "status": "Open", "owner": "Chat360", "assignedTo": "Web mockup - Deepak\nWA testing - Yash & Prashant", "update": "Development Completed: 24 Jun Staging Environment: Internal testing in progress Internal QA: In progress (ETA: TBD; additional QA support required from 2–3 testers) Aionos Testing: ETA TBD VAPT: In progress; approval pending from Adani team  Risks / Delays :  3–4 day delay from Chat360 side due to r"}, {"project": "Adani Airports_WhatsApp Bot", "pm": "Komal", "csm": "Ishu", "issue": "Approval / feedback pending from Adani team", "eta": "ETA - yet to receive", "goLive": "25th Jun", "status": "Open", "owner": "Chat360", "assignedTo": "Pawan Saini", "update": "Given to Aionos for Testing : 22 Jun Feedback Received: 25 Jun & 26 Jun (delay observed at feedback stage) Internal QA: Completed internally as per Aionos' required testing sheet format. UAT Sheet Shared: 29 Jun by Prashant, including implemented changes and internal QA results Adani Team Approval/F"}, {"project": "LIC", "pm": "Tunir", "csm": "Nain", "issue": "We were facing issues with the API validation details provided by Kfintech team . We are connecting regularly with Kfintech team to resolve the same", "eta": "ETA - 30th June", "goLive": "2nd July \n(tentative)", "status": "Open", "owner": "Client", "assignedTo": "Omkar", "update": "According to the Doc Omkar have created everything but The SIP API is still giving Errors, highlighted to Kfintech team, waiting for an update. Meanwhile Ambuj has started with testing on the flow. connecting with client tomorrow for mutual flow testing  Client is aware & informed over the email, ab"}, {"project": "Hyundai Mobis", "pm": "Piyush Tiwari", "csm": "Sana Naaz/ Aryaman", "issue": "The bot has been demonstrated to the client.We are currently accommodating and implementing the changes/feedback shared by the client.", "eta": "Exopected go live : 29th June", "goLive": "TBD", "status": "Open", "owner": "Chat360", "assignedTo": "Ritika Sen and Yash Dua", "update": "Client is telling last mintue changes due to which timeline is getting extended"}, {"project": "HOH - All bots data train", "pm": "Tunir", "csm": "Arnab", "issue": "Client has given feedbacks at in person meeting highlighted below\n\n1. overview - needs to be shorter just the 3/ 4 lines - no configs, price to shared \n2. Brochure, price, BHK, connectivity should only be given when the user asks for it\n3. in overview - it should not say 2, 3, 4 BHK twice (currently it is being mentioned twice)\n4. Possession date - if the user requests earlier - suggested answer - it should suggest other projects that were available for earlier possession (check sheet as possession delay needs to be described similarly) - bot should not contradict here - OMR possession date needs confirmation\n5. Images should shared only when the user asks for, amenities and overview and views\n6. Videos - Belicia needs to be added / No Instagram reels to be shared - only Youtube videos\n7. schedule a visit - option should be given wherever necessary \n8. Language - should understand Hindi and respond properly\n9. Prices - Asterix should be there , it should mention that- prices from...\n10. Nudge - 1 we need after 30 mins, 1 should be after 24 hrs \n11. The brochure names need to be changed \n12. Storey - Westgate and Amalfi - needs to added (to be shared by Smriti)\n13. Interlink for individual project bots should be provided if the user is enquiring for a different project on a different project bot (or else we can provide a link for the landing page , give them a brochure for the project they were enquiring on)", "eta": "Delivery Date - 30th June", "goLive": "1st July", "status": "Open", "owner": "Chat360", "assignedTo": "Aryan", "update": "Aryan jain has finished the feedbacks & testing the changes on production. CSM will visit the client in person on wednesday again & make the bots live"}, {"project": "HOH Eli", "pm": "Tunir", "csm": "Arnab", "issue": "The error msg is coming repeatedly in the bot flow", "eta": "ETA - yet to receive", "goLive": "5th June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Siddharth gupta", "update": "Resolved"}, {"project": "Autovista", "pm": "Tunir", "csm": "Swastik", "issue": "Client currently unable to send both WhatsApp and RCS messages from their end.", "eta": "Expected Delivery - 5th June", "goLive": "5th June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Arnab", "update": "Resolved"}, {"project": "ARKA Fincorp", "pm": "Piyush", "csm": "Arnab", "issue": "voice bot and SFTP devlopent underprocess", "eta": "30th June", "goLive": "30th June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Voice Team", "update": "Marathi and Tamil bots have been developed testing for tamil bot is on going. SFTP development has also WIP."}, {"project": "Baskin Robbins", "pm": "Komal", "csm": "Ritika", "issue": "Bot was stuck at pincode journey for store locator", "eta": "27th May", "goLive": "3rd June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Deepak", "update": "Resolved"}, {"project": "Wealthstreet Financial", "pm": "Tunir", "csm": "Ritika", "issue": "The Bot is not moving forward after asking for the OTP", "eta": "Expected Delivery - Today", "goLive": "22nd May", "status": "Resolved", "owner": "Chat360", "assignedTo": "Sanket & Prathamesh", "update": "Resolved"}, {"project": "Tata Power", "pm": "Komal", "csm": "Divyani", "issue": "Facing latency issues requiring architectural changes.", "eta": "Expected delivery: Today.", "goLive": "15th May", "status": "Resolved", "owner": "Chat360", "assignedTo": "", "update": "Issues are resolved. Informed the client, they will share feedbacks by eod."}, {"project": "Platform Level Issues(Agentic Overall)", "pm": "-", "csm": "-", "issue": "Agentic Bots were impacted due to platform-level issues. A hotfix deployed on Thursday night caused Agentic API failures, response delays, and session timeouts.", "eta": "Hotfix deployed Thursday night; revoked on Friday night. \nMonitoring ongoing by Product Team", "goLive": "-", "status": "Resolved", "owner": "Chat360", "assignedTo": "-", "update": "This is stabalized by Product Team"}, {"project": "Club Mahindra (FIT & Main Bot)", "pm": "Komal", "csm": "Nikhil Bhagat", "issue": "Both CM FIT Bot and Main Bot (yet to go-live) were impacted due to platform-level issues and hallucinations. Satyam was looped in and the client-side situation was managed.", "eta": "", "goLive": "TBD", "status": "Resolved", "owner": "Chat360", "assignedTo": "-", "update": "Bot is working fine now."}, {"project": "Adani Airports - Bot Looping Issue", "pm": "Komal", "csm": "Ishu", "issue": "Bot looping issue was raised during Friday’s audit call for 6th May recordings. RCA identified internal save mechanism failure. \nFix was deployed day before yesterday at 1 AM with prompt updates tested.", "eta": "Fix deployed day before yesterday at 1 AM; further investigation ongoing.", "goLive": "Post go-live changes.", "status": "Resolved", "owner": "Chat360", "assignedTo": "", "update": "- Bot latency and interruption is reduced. Looping is resolved.  - Internal UAT on client's feedback is will be starting by 1pm.  - Client testing on Chat360's platform was started yesterday and feedbacks are being worked upon.  - Post Internal UAT, client testing will be done on client's UAT platfo"}, {"project": "Adani Airports - Analytics", "pm": "Komal", "csm": "Ishu", "issue": "Backfilling activity is in progress. Team has completed 1–2 days of data for interim showcase. Multiple validations and fixes are ongoing.", "eta": "Backfilling and validations currently in progress.\nLive : P0- 27th Apr,  P1 - 2nd May,  P2- 5th May(live on 7th)", "goLive": "rescheduled - 4th June\n(P3- 11th May, Delayed to 25th May and now 27th May)", "status": "Open", "owner": "Chat360", "assignedTo": "Sai & Aditya Bandgar", "update": "P3 & WA CSAT is live."}, {"project": "JP Infra", "pm": "Tunir", "csm": "Nehha", "issue": "For Non API flows too client want the task to be created on SFDC", "eta": "Delivery Date - 25th May\n\nDelayed to - 29th May", "goLive": "2nd June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Musharraf", "update": "Resolved"}, {"project": "Hyundai Motors", "pm": "Piyush", "csm": "Sana Naaz/Aryaman", "issue": "Bot is under client UAT", "eta": "", "goLive": "30th May", "status": "Open", "owner": "Chat360", "assignedTo": "", "update": "Web bot is complete , On whatsapp bot Rohit is working"}];
+let TRACKER = SNAPSHOT_TRACKER, TECH = SNAPSHOT_TECH;
+
+/* ===== helpers ===== */
+const $ = s => document.querySelector(s);
+const num = v => { const n=parseInt((v||'').toString().replace(/[^\d-]/g,''),10); return isNaN(n)?0:n; };
+const esc = s => (s||'').toString().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const catKey = c => { c=(c||'').trim(); if(c==='Sliver')return 'Silver'; if(c.indexOf('POC')===0)return 'POC'; return c||'—'; };
+const catShort = c => { const k=catKey(c); return k==='POC'?(String(c).indexOf('Paid')>=0?'POC $':'POC'):k; };
+const stKey = s => (s||'').replace(/\s+/g,'');
+const blank = v => { const t=(v||'').toString().trim(); return !t || t==='—' || t==='-'; };
+const PH = {Delivered:'var(--live)','On Track':'var(--track)',Delayed:'var(--delay)','On Hold':'var(--hold)',Churned:'var(--churn)'};
+const PRIO_C = {Critical:'var(--churn)',High:'var(--delay)',Medium:'var(--track)',Low:'var(--live)'};
+
+function count(arr,key,order,split){
+  const m={};
+  arr.forEach(d=>{ let v=(d[key]||'').toString().trim();
+    if(blank(v)) return;
+    if(split){ v.split(/[\/,&]|and/).map(s=>s.trim()).filter(s=>s&&s!=='-').forEach(p=>m[p]=(m[p]||0)+1); }
+    else m[v]=(m[v]||0)+1; });
+  let ent=Object.entries(m);
+  if(order) ent.sort((a,b)=>order.indexOf(a[0])-order.indexOf(b[0]));
+  else ent.sort((a,b)=>b[1]-a[1]);
+  return ent;
+}
+function bars(sel,entries,colorFn){
+  const max=Math.max(1,...entries.map(e=>e[1]));
+  $(sel).innerHTML = entries.length ? entries.map(e=>`
+    <div class="brow"><span class="bl" title="${esc(e[0])}">${esc(e[0])}</span>
+      <span class="bt"><span class="bf" style="width:${e[1]/max*100}%;background:${colorFn(e[0])}"></span></span>
+      <span class="bn">${e[1]}</span></div>`).join('') : '';
+  return entries.length;
+}
+
+/* ===== OVERVIEW ===== */
+function renderOverview(){
+  const plat = TRACKER.filter(d=>catKey(d.category)==='Platinum');
+  const by = st => plat.filter(d=>d.status===st).length;
+  [['total','Platinum total',plat.length,''],
+   ['deliv','Delivered',by('Delivered'),plat.length],
+   ['delay','Delayed',by('Delayed'),plat.length],
+   ['track','On track',by('On Track'),plat.length],
+   ['hold','On hold',by('On Hold'),plat.length],
+   ['churn','Churned',by('Churned'),plat.length]]
+   .map(k=>`<div class="kpi ${k[0]}"><div class="n">${k[2]}</div><div class="l">${k[1]}</div>${k[3]?`<div class="pct">${Math.round(k[2]/k[3]*100)}%</div>`:''}</div>`)
+   .forEach((h,i,a)=>{ if(i===0) $('#kpis').innerHTML=a.join(''); });
+
+  const rate = plat.length? Math.round(by('Delayed')/plat.length*100):0;
+  $('#drVal').textContent = rate+'%';
+  $('#donut').style.background = `conic-gradient(var(--delay) 0 ${rate}%, var(--surface-3) ${rate}% 100%)`;
+  $('#drLeg').innerHTML =
+    `<div class="row"><span class="sw" style="background:var(--delay)"></span>Delayed — ${by('Delayed')} of ${plat.length}</div>
+     <div class="row"><span class="sw" style="background:var(--surface-3)"></span>Delivered / on track / other — ${plat.length-by('Delayed')}</div>
+     <div class="foot">Delayed ÷ Platinum total</div>`;
+
+  const delayed = plat.filter(d=>d.status==='Delayed');
+  const holdset = plat.filter(d=>d.status==='Delayed'||d.status==='On Hold');
+
+  // adaptive card 2: priority if present, else phase
+  const prio = count(delayed,'priority',['Critical','High','Medium','Low']);
+  if(prio.length){ $('#c2title').textContent='Delayed by priority';
+    bars('#c2body',prio,k=>PRIO_C[k]||'var(--muted)'); }
+  else { $('#c2title').textContent='Delayed by phase';
+    if(!bars('#c2body',count(delayed,'phase'),()=>'var(--delay)'))
+      $('#c2body').innerHTML=`<div class="noteempty">No delayed Platinum projects.</div>`; }
+
+  // adaptive card 3: root cause if present, else time-overdue buckets
+  const root = count(holdset,'rootCause');
+  if(root.length){ $('#c3title').textContent='Delayed / on-hold by root cause';
+    bars('#c3body',root,()=>'var(--plat)'); }
+  else { $('#c3title').textContent='Delayed by time overdue';
+    const b={'1–30 days':0,'31–60 days':0,'61–90 days':0,'90+ days':0};
+    delayed.forEach(d=>{const n=num(d.daysDelayed); if(n>90)b['90+ days']++;else if(n>60)b['61–90 days']++;else if(n>30)b['31–60 days']++;else if(n>0)b['1–30 days']++;});
+    const ent=Object.entries(b).filter(e=>e[1]>0);
+    if(!bars('#c3body',ent,k=>k==='90+ days'?'var(--churn)':'var(--delay)'))
+      $('#c3body').innerHTML=`<div class="noteempty">No overdue Platinum projects.</div>`;
+  }
+
+  if(!bars('#csmBody',count(delayed,'csm'),()=>'var(--churn)')) $('#csmBody').innerHTML=`<div class="noteempty">None.</div>`;
+  if(!bars('#bbBody',count(delayed,'bb',null,true),()=>'var(--hold)')) $('#bbBody').innerHTML=`<div class="noteempty">None.</div>`;
+
+  const det = holdset.slice().sort((a,b)=>num(b.daysDelayed)-num(a.daysDelayed));
+  $('#detCnt').textContent = det.length+' clients';
+  $('#detBody').innerHTML = det.map(d=>`
+    <tr onclick="this.querySelector('.upd').classList.toggle('clip')">
+      <td class="pjt">${esc(d.project)}</td>
+      <td class="sub-mono">${esc(d.csm)}</td><td class="sub-mono">${esc(d.pm)}</td><td class="sub-mono">${esc(d.bb)||'—'}</td>
+      <td class="dd" style="color:${num(d.daysDelayed)>90?'var(--churn)':'var(--delay)'}">${num(d.daysDelayed)}</td>
+      <td>${blank(d.priority)?'<span class="sub-mono">—</span>':`<span class="chip pr-${d.priority}">${esc(d.priority)}</span>`}</td>
+      <td class="sub-mono">${esc(d.rootCause)||'—'}</td>
+      <td class="upd clip">${esc(d.update)}</td>
+    </tr>`).join('') || `<tr><td colspan="8" class="empty">No delayed or on-hold Platinum projects.</td></tr>`;
+
+  const open=TECH.filter(t=>t.status==='Open').length, res=TECH.filter(t=>t.status==='Resolved').length;
+  const c360=TECH.filter(t=>t.owner==='Chat360').length, cli=TECH.filter(t=>t.owner==='Client').length;
+  $('#techMini').innerHTML=[['Total',TECH.length,'var(--text)'],['Open',open,'var(--delay)'],['Resolved',res,'var(--live)'],['At Chat360',c360,'var(--brand)'],['At Client',cli,'var(--churn)']]
+    .map(m=>`<div class="mini"><div class="n" style="color:${m[2]}">${m[1]}</div><div class="l">${m[0]}</div></div>`).join('');
+}
+
+/* ===== TRACKER ===== */
+let trkCat='All',trkStatus='All',trkQ='';
+function buildTrackerFilters(){
+  $('#trkCat').innerHTML=['All','Platinum','Gold','Silver','Bronze','POC'].map(c=>`<span class="seg${c==='All'?' on':''}" data-c="${c}">${c}</span>`).join('');
+  $('#trkStatus').innerHTML=['All','Delivered','On Track','Delayed','On Hold','Churned'].map(s=>`<span class="seg${s==='All'?' on':''}" data-s="${s}">${s}</span>`).join('');
+  $('#trkCat').onclick=e=>{const t=e.target.closest('[data-c]');if(!t)return;trkCat=t.dataset.c;$('#trkCat').querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',x===t));renderTracker();};
+  $('#trkStatus').onclick=e=>{const t=e.target.closest('[data-s]');if(!t)return;trkStatus=t.dataset.s;$('#trkStatus').querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',x===t));renderTracker();};
+  $('#trkSearch').oninput=e=>{trkQ=e.target.value.toLowerCase().trim();renderTracker();};
+}
+function renderTracker(){
+  let rows=TRACKER.filter(d=>{
+    if(trkCat!=='All'&&catKey(d.category)!==trkCat)return false;
+    if(trkStatus!=='All'&&d.status!==trkStatus)return false;
+    if(trkQ){const h=(d.project+d.csm+d.pm+d.bb+d.category+d.phase).toLowerCase();if(!h.includes(trkQ))return false;}
+    return true;
+  });
+  const so={Delayed:0,'On Hold':1,'On Track':2,Delivered:3,Churned:4};
+  rows.sort((a,b)=>{const pa=catKey(a.category)==='Platinum',pb=catKey(b.category)==='Platinum';if(pa!==pb)return pa?-1:1;
+    const sa=so[a.status]??9,sb=so[b.status]??9;if(sa!==sb)return sa-sb;return num(b.daysDelayed)-num(a.daysDelayed);});
+  $('#trkBody').innerHTML=rows.length?rows.map(d=>{const k=catKey(d.category);const pc=PH[d.status]||'var(--faint)';
+    return `<tr class="${k==='Platinum'?'plat':''}" onclick="this.querySelector('.upd').classList.toggle('clip')">
+      <td class="pjt">${esc(d.project)}</td>
+      <td><span class="chip cat-${k}">${catShort(d.category).toUpperCase()}</span></td>
+      <td class="sub-mono">${esc(d.csm)}</td><td class="sub-mono">${esc(d.pm)}</td><td class="sub-mono">${esc(d.bb)||'—'}</td>
+      <td class="sub-mono">${esc(d.phase)}</td>
+      <td><span class="stbadge" style="color:${pc}"><span class="sd" style="background:${pc}"></span>${esc(d.status)}</span></td>
+      <td class="dd" style="color:${num(d.daysDelayed)>90?'var(--churn)':num(d.daysDelayed)>0?'var(--delay)':'var(--faint)'}">${num(d.daysDelayed)||'—'}</td>
+      <td>${blank(d.priority)?'<span class="sub-mono">—</span>':`<span class="chip pr-${d.priority}">${esc(d.priority)}</span>`}</td>
+      <td class="sub-mono">${esc(d.rootCause)||'—'}</td>
+      <td class="upd clip">${esc(d.update)}</td></tr>`;}).join('')
+    :`<tr><td colspan="11" class="empty">No projects match these filters.</td></tr>`;
+}
+
+/* ===== TECH ===== */
+let techStatus='All',techOwner='All',techQ='';
+function buildTechFilters(){
+  $('#techStatusF').innerHTML=['All','Open','Resolved'].map(s=>`<span class="seg${s==='All'?' on':''}" data-s="${s}">${s}</span>`).join('');
+  $('#techOwnerF').innerHTML=['All','Chat360','Client'].map(o=>`<span class="seg${o==='All'?' on':''}" data-o="${o}">${o}</span>`).join('');
+  $('#techStatusF').onclick=e=>{const t=e.target.closest('[data-s]');if(!t)return;techStatus=t.dataset.s;$('#techStatusF').querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',x===t));renderTech();};
+  $('#techOwnerF').onclick=e=>{const t=e.target.closest('[data-o]');if(!t)return;techOwner=t.dataset.o;$('#techOwnerF').querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',x===t));renderTech();};
+  $('#techSearch').oninput=e=>{techQ=e.target.value.toLowerCase().trim();renderTech();};
+}
+function renderTech(){
+  let rows=TECH.filter(t=>{
+    if(techStatus!=='All'&&t.status!==techStatus)return false;
+    if(techOwner!=='All'&&t.owner!==techOwner)return false;
+    if(techQ){const h=(t.project+t.issue+t.owner+t.assignedTo+t.csm).toLowerCase();if(!h.includes(techQ))return false;}
+    return true;
+  }).sort((a,b)=>(a.status==='Open'?0:1)-(b.status==='Open'?0:1));
+  $('#techBody').innerHTML=rows.length?rows.map(t=>`
+    <div class="tcard ${t.status==='Resolved'?'resolved':''}">
+      <div class="th"><div><div class="tp">${esc(t.project)}</div>
+        <div class="tags"><span class="tag ${t.status==='Open'?'open':'res'}">${esc(t.status).toUpperCase()}</span>
+          <span class="tag ${t.owner==='Client'?'client':'c360'}">${esc(t.owner)||'—'}</span></div></div>
+        <div class="mono" style="text-align:right;font-size:10.5px;color:var(--faint)">${esc(t.goLive)||''}</div></div>
+      <div class="issue">${esc(t.issue)}</div>
+      <div class="meta">CSM ${esc(t.csm)||'—'} · PM ${esc(t.pm)||'—'} · ETA ${esc(t.eta)||'—'}</div>
+      <div class="latest"><b>Assigned:</b> ${esc(t.assignedTo)||'—'}<br><b>Latest:</b> ${esc(t.update)||'—'}</div>
+    </div>`).join('') : `<div class="empty" style="grid-column:1/-1">No issues match these filters.</div>`;
+}
+
+/* ===== nav + load ===== */
+document.querySelector('.nav').onclick=e=>{const t=e.target.closest('.tab');if(!t)return;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));$('#v-'+t.dataset.view).classList.add('on');};
+
+function renderAll(){$('#tcnt').textContent=TRACKER.length;$('#ecnt').textContent=TECH.length;renderOverview();renderTracker();renderTech();}
+function setLive(s,m){const c=$('#livechip');c.className='livechip'+(s==='live'?' on':s==='err'?' err':'');$('#livetext').textContent=m;}
+function parseCSV(text){const rows=[];let f='',row=[],q=false;for(let i=0;i<text.length;i++){const c=text[i];
+  if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
+  else if(c==='"')q=true;else if(c===','){row.push(f);f='';}else if(c==='\n'){row.push(f);rows.push(row);row=[];f='';}else if(c!=='\r')f+=c;}
+  if(f.length||row.length){row.push(f);rows.push(row);}return rows;}
+function mapRows(rows,map){if(!rows.length)return[];const hdr=rows[0].map(h=>(h||'').trim());const idx={};hdr.forEach((h,i)=>{if(map[h])idx[map[h]]=i;});
+  const out=[];for(let r=1;r<rows.length;r++){const row=rows[r],pi=idx['project'];if(pi==null||!row[pi]||!row[pi].trim())continue;
+    const o={};Object.values(map).forEach(k=>{o[k]=idx[k]!=null?(row[idx[k]]||'').trim():'';});out.push(o);}return out;}
+async function fetchCSV(id,tab){const url=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+  const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return parseCSV(await r.text());}
+async function loadLive(){
+  if(!LIVE.enabled){setLive('snap','Snapshot');return;}
+  setLive('','Loading…');
+  try{
+    if(LIVE.mode==='api'){const j=await(await fetch(LIVE.apiUrl,{cache:'no-store'})).json();
+      if(Array.isArray(j.tracker)&&j.tracker.length)TRACKER=j.tracker;if(Array.isArray(j.tech))TECH=j.tech;}
+    else{const [tr,tc]=await Promise.all([fetchCSV(LIVE.sheetId,LIVE.trackerTab),fetchCSV(LIVE.sheetId,LIVE.techTab)]);
+      const t=mapRows(tr,TRACKER_MAP),e=mapRows(tc,TECH_MAP);if(t.length)TRACKER=t;if(e.length)TECH=e;}
+    renderAll();setLive('live','Live');
+    const now=new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+    $('#syncTime').innerHTML='Synced <b>'+now+'</b>';$('#asof').textContent='live · '+now;
+  }catch(err){setLive('err','Live unavailable — snapshot');console.warn('live load failed:',err);$('#syncTime').textContent='snapshot';}
+}
+$('#refresh').onclick=loadLive;
+buildTrackerFilters();buildTechFilters();renderAll();loadLive();
+if(LIVE.enabled&&LIVE.refreshMs>0)setInterval(loadLive,LIVE.refreshMs);
+</script>
+</body>
+</html>
