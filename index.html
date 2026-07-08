@@ -251,7 +251,7 @@
 
 <script>
 /* ================= CONFIG ================= */
-let API_URL = "";   // paste your Apps Script /exec URL here, or pass ?api=…
+let API_URL = "https://script.google.com/macros/s/AKfycbxG9q8fnMA2FBtbN5lwZxonVakn-9fSArz_CklpHgkSfhuSzC4tGKo2wH78ct_Le7lN/exec";
 
 /* ================= constants ================= */
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -269,7 +269,7 @@ let section="exec", charts={}, stageFilter=null, activeStage=null, refreshTimer=
 const today=new Date(); today.setHours(0,0,0,0);
 
 /* ================= boot ================= */
-(function init(){
+function init(){
   const q=new URLSearchParams(location.search); if(q.get("api")) API_URL=q.get("api");
   buildNav();
   document.getElementById("refreshBtn").addEventListener("click",()=>load(true));
@@ -277,7 +277,7 @@ const today=new Date(); today.setHours(0,0,0,0);
   bindProjects(); bindBuild(); bindIssues(); bindHandover();
   if(!API_URL){ show("setup",true); setSync("No source",true); return; }
   load(true); refreshTimer=setInterval(()=>load(false),3*60*1000);
-})();
+}
 
 function buildNav(){
   const nav=document.getElementById("nav");
@@ -670,6 +670,9 @@ function sortRows(rows,state,accessors){
     if(va<vb) return -state.dir; if(va>vb) return state.dir; return 0;
   });
 }
+
+/* start once every declaration above exists */
+init();
 </script>
 </body>
 </html>
