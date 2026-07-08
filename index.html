@@ -194,6 +194,9 @@
   .mini .l{font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-top:6px}
 
   .empty{text-align:center;padding:48px;color:var(--faint);font-size:13px}
+  .sheetcell{white-space:pre-wrap;word-break:break-word;max-width:340px;color:#c0cde1;font-size:12px;vertical-align:top}
+  .tab.dyn .cnt{background:var(--surface)}
+  .sheetnote{font-size:11.5px;color:var(--faint);margin:-6px 0 14px}
   footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--faint);
     display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
 
@@ -303,6 +306,8 @@
     </div>
     <div class="techgrid" id="techBody"></div>
   </section>
+
+  <div id="dynViews"></div>
 
   <footer>
     <div style="max-width:680px">Live from the Chat360 Tracker · Platinum analytics computed in-browser. Priority &amp; root cause populate automatically once those columns exist in the source tab.</div>
@@ -508,12 +513,42 @@ function renderTech(){
     </div>`).join('') : `<div class="empty" style="grid-column:1/-1">No issues match these filters.</div>`;
 }
 
+/* ===== GENERIC SHEET TABS ===== */
+let SHEETS={};
+function renderSheets(){
+  document.querySelectorAll('.tab.dyn').forEach(x=>x.remove());
+  const dv=$('#dynViews'); dv.innerHTML='';
+  const names=Object.keys(SHEETS);
+  names.forEach((name,i)=>{
+    const id='sheet-'+i, sh=SHEETS[name];
+    const tab=document.createElement('div');
+    tab.className='tab dyn'; tab.dataset.view=id;
+    tab.innerHTML=`${esc(name)} <span class="cnt">${sh.rows.length}</span>`;
+    document.querySelector('.nav').appendChild(tab);
+    const sec=document.createElement('section');
+    sec.className='view'; sec.id='v-'+id;
+    sec.innerHTML=`<div class="sheetnote">Live from the “${esc(name)}” tab · ${sh.rows.length} rows × ${sh.columns.length} columns</div>
+      <div class="controls"><input class="search" placeholder="Search ${esc(name)}…" data-sheet="${i}"></div>
+      <div class="tablecard"><div class="tscroll"><table><thead><tr>${sh.columns.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody id="sb-${i}"></tbody></table></div></div>`;
+    dv.appendChild(sec);
+    renderSheetRows(i,'');
+  });
+}
+function renderSheetRows(i,q){
+  const name=Object.keys(SHEETS)[i], sh=SHEETS[name];
+  const rows=q?sh.rows.filter(r=>r.join(' ').toLowerCase().includes(q)):sh.rows;
+  const b=$('#sb-'+i); if(!b)return;
+  b.innerHTML=rows.length?rows.map(r=>`<tr>${sh.columns.map((c,ci)=>`<td class="sheetcell">${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('')
+    :`<tr><td class="empty" colspan="${sh.columns.length}">No matches.</td></tr>`;
+}
+$('#dynViews').addEventListener('input',e=>{const t=e.target.closest('[data-sheet]');if(!t)return;renderSheetRows(+t.dataset.sheet,e.target.value.toLowerCase().trim());});
+
 /* ===== nav + load ===== */
 document.querySelector('.nav').onclick=e=>{const t=e.target.closest('.tab');if(!t)return;
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));$('#v-'+t.dataset.view).classList.add('on');};
 
-function renderAll(){$('#tcnt').textContent=TRACKER.length;$('#ecnt').textContent=TECH.length;renderOverview();renderTracker();renderTech();}
+function renderAll(){$('#tcnt').textContent=TRACKER.length;$('#ecnt').textContent=TECH.length;renderOverview();renderTracker();renderTech();renderSheets();}
 function setLive(s,m){const c=$('#livechip');c.className='livechip'+(s==='live'?' on':s==='err'?' err':'');$('#livetext').textContent=m;}
 function parseCSV(text){const rows=[];let f='',row=[],q=false;for(let i=0;i<text.length;i++){const c=text[i];
   if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
@@ -529,7 +564,7 @@ async function loadLive(){
   setLive('','Loading…');
   try{
     if(LIVE.mode==='api'){const j=await(await fetch(LIVE.apiUrl,{cache:'no-store'})).json();
-      if(Array.isArray(j.tracker)&&j.tracker.length)TRACKER=j.tracker;if(Array.isArray(j.tech))TECH=j.tech;}
+      if(Array.isArray(j.tracker)&&j.tracker.length)TRACKER=j.tracker;if(Array.isArray(j.tech))TECH=j.tech;if(j.sheets&&typeof j.sheets==='object')SHEETS=j.sheets;}
     else{const [tr,tc]=await Promise.all([fetchCSV(LIVE.sheetId,LIVE.trackerTab),fetchCSV(LIVE.sheetId,LIVE.techTab)]);
       const t=mapRows(tr,TRACKER_MAP),e=mapRows(tc,TECH_MAP);if(t.length)TRACKER=t;if(e.length)TECH=e;}
     renderAll();setLive('live','Live');
