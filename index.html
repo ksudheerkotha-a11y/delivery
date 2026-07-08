@@ -197,6 +197,17 @@
   .sheetcell{white-space:pre-wrap;word-break:break-word;max-width:340px;color:#c0cde1;font-size:12px;vertical-align:top}
   .tab.dyn .cnt{background:var(--surface)}
   .sheetnote{font-size:11.5px;color:var(--faint);margin:-6px 0 14px}
+  .skpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .skpi{background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:15px 16px}
+  .skpi .skn{font-family:"Space Grotesk",sans-serif;font-size:25px;font-weight:600;letter-spacing:-.02em;color:var(--text)}
+  .skpi .skl{font-size:10px;color:var(--muted);margin-top:7px;text-transform:uppercase;letter-spacing:.06em}
+  .sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:18px}
+  .rawwrap{margin-top:4px}
+  .rawwrap>summary{cursor:pointer;font-size:12.5px;color:var(--muted);padding:11px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:9px}
+  .rawwrap>summary::-webkit-details-marker{display:none}
+  .rawwrap>summary:before{content:"▸";color:var(--faint);transition:.15s;display:inline-block}
+  .rawwrap[open]>summary:before{transform:rotate(90deg)}
+  .rawwrap>summary:hover{color:var(--text)}
   footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--faint);
     display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
 
@@ -513,13 +524,37 @@ function renderTech(){
     </div>`).join('') : `<div class="empty" style="grid-column:1/-1">No issues match these filters.</div>`;
 }
 
-/* ===== GENERIC SHEET TABS ===== */
+/* ===== SMART SHEET TABS (auto-analysed executive views) ===== */
 let SHEETS={};
+const numOf=v=>{const c=(v||'').toString().replace(/[,₹$%\s]/g,'');const x=parseFloat(c);return isNaN(x)?0:x;};
+const fmtNum=x=>{x=Math.round(x*100)/100;return x.toLocaleString('en-IN');};
+const shortName=s=>{s=(s||'').toString();return s.length>24?s.slice(0,22)+'…':s;};
+const isDateLike=v=>/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(v)||/\d{1,2}\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(v);
+function barHTML(entries,color){
+  if(!entries.length)return '<div class="noteempty">No data.</div>';
+  const max=Math.max(1,...entries.map(e=>e[1]));
+  return entries.map(e=>`<div class="brow"><span class="bl" title="${esc(e[0])}">${esc(e[0])}</span><span class="bt"><span class="bf" style="width:${e[1]/max*100}%;background:${color}"></span></span><span class="bn">${fmtNum(e[1])}</span></div>`).join('');
+}
+function groupCount(rows,ci){const m={};rows.forEach(r=>{const k=(r[ci]||'').toString().trim();if(!k)return;m[k]=(m[k]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);}
+function groupSum(rows,ci,mi){const m={};rows.forEach(r=>{const k=(r[ci]||'').toString().trim();if(!k)return;m[k]=(m[k]||0)+numOf(r[mi]);});return Object.entries(m).sort((a,b)=>b[1]-a[1]);}
+function profileSheet(cols,rows){
+  return cols.map((name,ci)=>{
+    const vals=rows.map(r=>(r[ci]||'').toString().trim()).filter(v=>v!=='');
+    const ne=vals.length; let numC=0,dateC=0,pctC=0;
+    vals.forEach(v=>{const c=v.replace(/[,₹$%\s]/g,'');if(c!==''&&!isNaN(Number(c))){numC++;if(v.indexOf('%')>=0)pctC++;}if(isDateLike(v))dateC++;});
+    const distinct=new Set(vals.map(v=>v.toLowerCase())).size;
+    const isId=/(^|\b)(sr|s\.?\s?no|serial|id|rank|index|#)\b/i.test(name);
+    const numeric=ne>0&&numC/ne>=0.7&&dateC/Math.max(1,ne)<0.5&&!isId;
+    const date=!numeric&&ne>0&&dateC/ne>=0.6;
+    const personish=/\b(csm|pm|owner|bot\s*builder|builder|bb|name|agent|assign|manager|lead|rep|poc|dev)\b/i.test(name)&&!numeric&&!date;
+    const categorical=!numeric&&!date&&distinct>1&&distinct<=15&&(distinct/Math.max(1,ne))<0.7;
+    return{name,ci,ne,distinct,numeric,date,personish,categorical,isPercent:numeric&&pctC>numC*0.5};
+  });
+}
 function renderSheets(){
   document.querySelectorAll('.tab.dyn').forEach(x=>x.remove());
   const dv=$('#dynViews'); dv.innerHTML='';
-  const names=Object.keys(SHEETS);
-  names.forEach((name,i)=>{
+  Object.keys(SHEETS).forEach((name,i)=>{
     const id='sheet-'+i, sh=SHEETS[name];
     const tab=document.createElement('div');
     tab.className='tab dyn'; tab.dataset.view=id;
@@ -527,13 +562,49 @@ function renderSheets(){
     document.querySelector('.nav').appendChild(tab);
     const sec=document.createElement('section');
     sec.className='view'; sec.id='v-'+id;
-    sec.innerHTML=`<div class="sheetnote">Live from the “${esc(name)}” tab · ${sh.rows.length} rows × ${sh.columns.length} columns</div>
-      <div class="controls"><input class="search" placeholder="Search ${esc(name)}…" data-sheet="${i}"></div>
-      <div class="tablecard"><div class="tscroll"><table><thead><tr>${sh.columns.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody id="sb-${i}"></tbody></table></div></div>`;
+    sec.innerHTML=smartSection(name,sh,i);
     dv.appendChild(sec);
     renderSheetRows(i,'');
   });
 }
+function smartSection(name,sh,i){
+  const cols=sh.columns, rows=sh.rows, n=rows.length;
+  const prof=profileSheet(cols,rows);
+  const measures=prof.filter(p=>p.numeric);
+  const persons=prof.filter(p=>p.personish);
+  const dims=prof.filter(p=>p.categorical||p.personish);
+
+  // KPI strip
+  let kpis=[['Rows',fmtNum(n)]];
+  measures.slice(0,3).forEach(m=>{
+    if(m.isPercent){const vals=rows.map(r=>r[m.ci]).filter(v=>(v||'').toString().trim());const a=vals.length?vals.reduce((s,v)=>s+numOf(v),0)/vals.length:0;kpis.push(['Avg '+shortName(m.name),a.toFixed(1)+'%']);}
+    else kpis.push(['Total '+shortName(m.name),fmtNum(rows.reduce((s,r)=>s+numOf(r[m.ci]),0))]);
+  });
+  const primDim=persons[0]||dims[0];
+  if(primDim&&kpis.length<5)kpis.push(['Distinct '+shortName(primDim.name),primDim.distinct]);
+  const kpiHTML=kpis.slice(0,5).map(k=>`<div class="skpi"><div class="skn">${esc(String(k[1]))}</div><div class="skl">${esc(k[0])}</div></div>`).join('');
+
+  // breakdown panels
+  const panels=[]; const used=new Set();
+  if(persons[0]){
+    const p=persons[0]; used.add(p.ci);
+    if(measures[0]){const ent=groupSum(rows,p.ci,measures[0].ci).slice(0,10);panels.push(panelHTML(`${shortName(measures[0].name)} by ${shortName(p.name)}`,barHTML(ent,'var(--brand)')));}
+    else{const ent=groupCount(rows,p.ci).slice(0,10);panels.push(panelHTML(`By ${shortName(p.name)}`,barHTML(ent,'var(--brand)')));}
+  }
+  dims.filter(d=>!used.has(d.ci)).slice(0,3-panels.length+1).slice(0,2).forEach(d=>{
+    used.add(d.ci);const ent=groupCount(rows,d.ci).slice(0,10);
+    panels.push(panelHTML(`By ${shortName(d.name)}`,barHTML(ent,'var(--plat)')));
+  });
+  const panelsHTML=panels.length?`<div class="sgrid">${panels.join('')}</div>`:'';
+
+  const tableHTML=`<details class="rawwrap"><summary>Full table · ${n} rows × ${cols.length} columns</summary>
+    <div class="controls" style="margin-top:12px"><input class="search" placeholder="Search ${esc(name)}…" data-sheet="${i}"></div>
+    <div class="tablecard"><div class="tscroll"><table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody id="sb-${i}"></tbody></table></div></div></details>`;
+
+  return `<div class="sheetnote">Live from “${esc(name)}” · auto-summarised for leadership</div>
+    <div class="skpis">${kpiHTML}</div>${panelsHTML}${tableHTML}`;
+}
+function panelHTML(title,body){return `<div class="card"><div class="hd"><span class="dot"></span><h2>${esc(title)}</h2></div><div class="bd">${body}</div></div>`;}
 function renderSheetRows(i,q){
   const name=Object.keys(SHEETS)[i], sh=SHEETS[name];
   const rows=q?sh.rows.filter(r=>r.join(' ').toLowerCase().includes(q)):sh.rows;
