@@ -3,650 +3,673 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Chat360 · Delivery Board</title>
+<title>Chat360 · Delivery Control Tower</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
-    --bg:#080b11; --bg-2:#0b0f17;
-    --surface:#0f1420; --surface-2:#131a28; --surface-3:#1a2333;
-    --line:#1e2839; --line-2:#26324a; --line-soft:#161e2c;
-    --text:#eef2f8; --muted:#8b99b0; --faint:#586479;
-    --brand:#42b8cc; --live:#2fd39a; --track:#4fb0ec; --delay:#f4b13c;
-    --hold:#a488f5; --churn:#f2647f; --high:#ff7d5e; --plat:#c0adf7;
-    --gold:#d9b25c; --silver:#b7c2d4; --bronze:#c88d63;
-    --r:12px; --r-lg:16px;
-    --sh:0 1px 0 rgba(255,255,255,.02) inset, 0 10px 30px -18px rgba(0,0,0,.7);
-    --grid:8px; font-synthesis:none;
+    --bg:#0A0E16;--panel:#121A28;--panel-2:#0F1622;--line:#1F2A3D;--line-soft:#182234;
+    --ink-1:#EAF1FB;--ink-2:#94A6C0;--ink-3:#5C6F8C;--brand:#2FE3C4;--brand-dim:#12897A;
+    --s-live:#37D399;--s-ready:#7BE0A6;--s-test:#F5C451;--s-integrate:#38BDF8;--s-build:#7C93F0;
+    --s-scope:#8E7BF0;--s-hold:#FB923C;--s-risk:#F8776B;--s-churn:#E5556B;--s-neutral:#64758F;
+    --p0:#F8776B;--p1:#FB923C;--p2:#F5C451;--p3:#7C93F0;
   }
-  *{box-sizing:border-box}
-  html,body{margin:0}
-  body{
-    background:
-      radial-gradient(1100px 520px at 88% -10%, rgba(66,184,204,.07), transparent 62%),
-      radial-gradient(760px 420px at 4% -4%, rgba(164,136,245,.06), transparent 58%),
-      var(--bg);
-    color:var(--text); font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    -webkit-font-smoothing:antialiased; line-height:1.5; letter-spacing:-.005em;
-  }
-  .wrap{max-width:1400px;margin:0 auto;padding:0 28px 72px}
-  .mono{font-family:"JetBrains Mono",monospace}
+  *{box-sizing:border-box}html,body{margin:0;padding:0}
+  body{background:radial-gradient(1200px 600px at 80% -10%,rgba(47,227,196,.06),transparent 60%),var(--bg);
+    color:var(--ink-1);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45;min-height:100vh}
+  .mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0;letter-spacing:-.01em}
 
-  /* ---------- app bar ---------- */
-  .appbar{
-    position:sticky;top:0;z-index:20;margin:0 -28px 26px;padding:16px 28px;
-    background:rgba(8,11,17,.82);backdrop-filter:saturate(140%) blur(10px);
-    border-bottom:1px solid var(--line-soft);
-    display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
-  }
-  .brand{display:flex;align-items:center;gap:13px}
-  .glyph{width:38px;height:38px;border-radius:10px;flex:none;
-    background:linear-gradient(155deg,var(--brand),#2c6f86);display:grid;place-items:center;position:relative;
-    box-shadow:0 6px 16px -6px rgba(66,184,204,.55)}
-  .glyph:before{content:"";width:13px;height:13px;border-radius:50% 50% 50% 2px;background:var(--bg);transform:rotate(-8deg)}
-  .brand h1{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:19px;letter-spacing:-.02em;margin:0;line-height:1}
-  .brand .sub{font-size:12px;color:var(--faint);margin-top:4px;letter-spacing:0}
-  .brand .sub b{color:var(--plat);font-weight:500}
-  .barctl{display:flex;align-items:center;gap:12px}
-  .sync{font-size:11px;color:var(--faint);text-align:right;line-height:1.3}
-  .sync b{color:var(--muted);font-weight:500}
-  .livechip{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:500;
-    padding:6px 11px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--muted)}
-  .livechip .led{width:7px;height:7px;border-radius:50%;background:var(--faint)}
-  .livechip.on{border-color:rgba(47,211,154,.35);color:var(--live);background:rgba(47,211,154,.06)}
-  .livechip.on .led{background:var(--live);box-shadow:0 0 7px var(--live);animation:pulse 2.4s infinite}
-  .livechip.err{border-color:rgba(242,100,127,.35);color:var(--churn)} .livechip.err .led{background:var(--churn)}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
-  .btn{font-family:inherit;font-size:12px;font-weight:500;padding:7px 12px;border-radius:8px;cursor:pointer;
-    background:var(--surface-3);border:1px solid var(--line-2);color:var(--text);transition:.13s;display:inline-flex;align-items:center;gap:6px}
-  .btn:hover{border-color:var(--brand);color:var(--brand)}
+  header.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:16px;padding:12px 24px;
+    background:rgba(10,14,22,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .brandmark{display:flex;align-items:center;gap:11px;flex:none}
+  .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--brand),#1C7C8F);display:grid;place-items:center;color:#04211D;font-weight:700;font-family:'Space Grotesk';font-size:15px;box-shadow:0 0 0 1px rgba(47,227,196,.25),0 8px 24px -10px rgba(47,227,196,.6)}
+  .brandtext h1{font-size:15px}.brandtext .sub{font-size:10px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
+  nav.sections{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}nav.sections::-webkit-scrollbar{display:none}
+  nav.sections button{font-family:'Space Grotesk';font-size:12.5px;font-weight:600;background:none;border:none;color:var(--ink-3);cursor:pointer;padding:8px 13px;border-radius:8px;white-space:nowrap;transition:.15s;position:relative}
+  nav.sections button:hover{color:var(--ink-1)}
+  nav.sections button.on{color:var(--brand)}
+  nav.sections button.on::after{content:"";position:absolute;left:13px;right:13px;bottom:-1px;height:2px;background:var(--brand);border-radius:2px}
+  nav.sections button .pill{display:inline-block;min-width:16px;padding:0 5px;margin-left:6px;font-size:10.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;color:var(--ink-2);font-family:'JetBrains Mono'}
+  nav.sections button.on .pill{background:rgba(47,227,196,.13);border-color:var(--brand-dim);color:var(--brand)}
+  .sync{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-2);flex:none}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--s-live);animation:pulse 2.4s infinite}.dot.stale{background:var(--s-risk);animation:none}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(55,211,153,.55)}70%{box-shadow:0 0 0 7px rgba(55,211,153,0)}100%{box-shadow:0 0 0 0 rgba(55,211,153,0)}}
+  .icon-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--ink-2);width:32px;height:32px;border-radius:9px;cursor:pointer;display:grid;place-items:center;flex:none}
+  .icon-btn:hover{color:var(--ink-1);border-color:var(--brand-dim)}.icon-btn.spin svg{animation:rot .8s linear infinite}@keyframes rot{to{transform:rotate(360deg)}}
 
-  /* ---------- nav ---------- */
-  .nav{display:flex;gap:2px;margin-bottom:24px}
-  .tab{font-size:13.5px;font-weight:500;padding:9px 15px;cursor:pointer;color:var(--muted);
-    border-radius:9px;transition:.12s;display:flex;align-items:center;gap:8px}
-  .tab:hover{color:var(--text);background:var(--surface)}
-  .tab.on{color:var(--text);background:var(--surface-3)}
-  .tab .cnt{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:6px;background:var(--surface);color:var(--faint)}
-  .tab.on .cnt{background:rgba(66,184,204,.14);color:var(--brand)}
+  main{padding:22px 24px 60px;max-width:1580px;margin:0 auto}
+  .section-eyebrow{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:2px 0 12px;display:flex;align-items:center;gap:10px}
+  .section-eyebrow::after{content:"";flex:1;height:1px;background:var(--line-soft)}
 
-  .view{display:none} .view.on{display:block;animation:fade .22s ease}
-  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-  .eyebrow{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);
-    margin:0 0 12px;display:flex;align-items:center;gap:10px}
-  .eyebrow:after{content:"";flex:1;height:1px;background:var(--line-soft)}
-  .scopebar{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 18px}
-  .scopeseg{font-size:12px;font-weight:500;padding:7px 12px;border-radius:8px;cursor:pointer;background:var(--surface);border:1px solid var(--line-2);color:var(--muted);transition:.12s;user-select:none;display:inline-flex;align-items:center;gap:7px}
-  .scopeseg:hover{color:var(--text);border-color:var(--faint)}
-  .scopeseg b{font-family:"JetBrains Mono",monospace;font-weight:600;font-size:11px;color:var(--faint)}
-  .scopeseg.on{background:var(--surface-3);color:var(--text);border-color:var(--brand)}
-  .scopeseg.on b{color:var(--brand)}
-  .exp{color:var(--faint);font-weight:700;margin-left:6px;transition:.15s;display:inline-block}
-  tr.open .exp{transform:rotate(90deg);color:var(--brand)}
-  .detailrow>td{padding:0;background:var(--bg-2)}
-  .detailwrap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 24px;padding:16px 20px;border-bottom:2px solid var(--line)}
-  .dcell{display:flex;flex-direction:column;gap:3px;min-width:0}
-  .dl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600}
-  .dv{font-size:12px;color:#c0cde1;line-height:1.5;white-space:pre-line;word-break:break-word}
-  @media(max-width:900px){.detailwrap{grid-template-columns:1fr 1fr}}
-  @media(max-width:600px){.detailwrap{grid-template-columns:1fr}}
+  .pipeline{display:grid;grid-template-columns:repeat(6,1fr) 1.15fr;gap:10px}
+  .stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px;cursor:pointer;transition:.18s;overflow:hidden}
+  .stage::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--sc,var(--s-neutral))}
+  .stage:hover{transform:translateY(-2px);border-color:var(--sc,var(--brand-dim))}
+  .stage.active{box-shadow:0 0 0 1px var(--sc) inset;border-color:var(--sc)}
+  .stage .st-name{font-size:11px;color:var(--ink-2);font-weight:600;display:flex;align-items:center;gap:7px}
+  .stage .st-name i{width:7px;height:7px;border-radius:2px;background:var(--sc);flex:none}
+  .stage .st-num{font-family:'Space Grotesk';font-size:31px;font-weight:700;margin-top:8px;line-height:1}
+  .stage .st-foot{font-size:10.5px;color:var(--ink-3);margin-top:6px}
+  .stage.risk-lane{grid-column:7}.risk-split{display:flex;gap:14px;margin-top:8px}.risk-split div{flex:1}
+  .risk-split .rn{font-family:'Space Grotesk';font-size:23px;font-weight:700;line-height:1}
+  .risk-split .rl{font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
 
-  /* ---------- kpi ---------- */
-  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:26px}
-  .kpi{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r);
-    padding:16px 17px 15px;position:relative;overflow:hidden;transition:.15s}
-  .kpi:hover{border-color:var(--line-2)}
-  .kpi:before{content:"";position:absolute;left:0;top:0;right:0;height:2px;opacity:.9}
-  .kpi .n{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:600;line-height:1;letter-spacing:-.03em}
-  .kpi .l{font-size:10.5px;color:var(--muted);margin-top:9px;text-transform:uppercase;letter-spacing:.08em}
-  .kpi .pct{position:absolute;top:16px;right:16px;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--faint)}
-  .kpi.total:before{background:var(--plat)} .kpi.total .n{color:var(--plat)}
-  .kpi.deliv:before{background:var(--live)} .kpi.deliv .n{color:var(--live)}
-  .kpi.delay:before{background:var(--delay)} .kpi.delay .n{color:var(--delay)}
-  .kpi.track:before{background:var(--track)} .kpi.track .n{color:var(--track)}
-  .kpi.hold:before{background:var(--hold)} .kpi.hold .n{color:var(--hold)}
-  .kpi.churn:before{background:var(--churn)} .kpi.churn .n{color:var(--churn)}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:20px 0 4px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+  .kpi .l{font-size:10.5px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+  .kpi .v{font-family:'Space Grotesk';font-size:29px;font-weight:700;margin-top:7px;line-height:1}
+  .kpi .d{font-size:11px;margin-top:6px;color:var(--ink-2)}
+  .kpi.accent .v{color:var(--brand)}.kpi.risk .v{color:var(--s-risk)}.kpi.live .v{color:var(--s-live)}.kpi.warn .v{color:var(--s-test)}
 
-  /* ---------- cards ---------- */
-  .grid3{display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:14px;margin-bottom:14px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:26px}
-  .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);overflow:hidden}
-  .card .hd{display:flex;align-items:center;gap:9px;padding:15px 18px 13px}
-  .card .hd h2{font-family:"Space Grotesk",sans-serif;font-size:13.5px;font-weight:600;margin:0;flex:1;letter-spacing:-.01em}
-  .card .hd .dot{width:7px;height:7px;border-radius:2px;background:var(--plat)}
-  .card .hd .tag{font-size:10px;color:var(--faint);font-weight:500}
-  .card .bd{padding:6px 18px 18px}
-  .pill{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:7px;background:rgba(192,173,247,.12);color:var(--plat)}
+  .radar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+  .rcard{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 15px;cursor:pointer;transition:.15s}
+  .rcard:hover{border-color:var(--brand-dim)}
+  .rcard .rt{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600;display:flex;justify-content:space-between}
+  .rcard .rt b{font-family:'Space Grotesk';font-size:20px;color:var(--ink-1)}
+  .rcard.deliv .rt b{color:var(--s-live)}.rcard.plan .rt b{color:var(--s-test)}
+  .rcard .rl{margin-top:9px;font-size:11.5px;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}
+  .rcard .rl .none{color:var(--ink-3)}
 
-  /* donut */
-  .donut-wrap{display:flex;align-items:center;gap:20px;padding-top:6px}
-  .donut{width:108px;height:108px;flex:none;border-radius:50%;display:grid;place-items:center}
-  .donut .inner{width:80px;height:80px;border-radius:50%;background:var(--surface);display:grid;place-items:center;text-align:center}
-  .donut .inner b{font-family:"Space Grotesk",sans-serif;font-size:27px;color:var(--delay);line-height:1;letter-spacing:-.03em}
-  .donut .inner span{font-size:8.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
-  .drleg{font-size:12.5px;color:var(--muted)}
-  .drleg .row{display:flex;align-items:center;gap:9px;margin:6px 0}
-  .drleg .sw{width:9px;height:9px;border-radius:3px}
-  .drleg .foot{color:var(--faint);font-size:11px;margin-top:10px}
+  .grid{display:grid;gap:16px;margin-top:22px}
+  .grid.c3{grid-template-columns:1.15fr 1fr 1fr}.grid.c2{grid-template-columns:1fr 1fr}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px 18px 16px}
+  .card h3{font-size:14px;font-weight:600}
+  .card .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .card .hd .meta{font-size:11px;color:var(--ink-3)}
+  .chart-wrap{position:relative;height:230px}.chart-wrap.tall{height:300px}
 
-  /* bars */
-  .brow{display:grid;grid-template-columns:130px 1fr 30px;gap:11px;align-items:center;margin:10px 0;font-size:12.5px}
-  .brow .bl{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .brow .bt{height:8px;border-radius:5px;background:var(--surface-3);overflow:hidden}
-  .brow .bf{height:100%;border-radius:5px;transition:width .5s cubic-bezier(.4,0,.2,1)}
-  .brow .bn{font-family:"JetBrains Mono",monospace;font-weight:600;text-align:right;color:var(--text)}
-  .noteempty{color:var(--faint);font-size:12px;padding:20px 4px;line-height:1.6}
-  .noteempty b{color:var(--muted);font-weight:500}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:2px 0 16px}
+  .search{flex:1;min-width:220px;position:relative}
+  .search input{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;color:var(--ink-1);padding:10px 12px 10px 36px;font-family:'Inter';font-size:13.5px;outline:none}
+  .search input:focus{border-color:var(--brand-dim)}.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--ink-3)}
+  select.filter{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;color:var(--ink-2);padding:9px 30px 9px 12px;font-family:'Inter';font-size:13px;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235C6F8C' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+  select.filter:focus{border-color:var(--brand-dim);color:var(--ink-1)}
+  .clearbtn{background:none;border:1px solid var(--line);color:var(--ink-3);border-radius:10px;padding:9px 13px;font-size:12.5px;cursor:pointer}.clearbtn:hover{color:var(--s-risk);border-color:var(--s-risk)}
+  .count-tag{font-size:12px;color:var(--ink-3)}.count-tag b{color:var(--ink-1);font-family:'JetBrains Mono'}
 
-  /* tables */
-  .tablecard{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);overflow:hidden}
-  .tscroll{overflow:auto}
-  table{width:100%;border-collapse:collapse;font-size:12.5px}
-  thead th{position:sticky;top:0;background:var(--surface-2);color:var(--faint);text-align:left;font-weight:600;
-    font-size:10px;text-transform:uppercase;letter-spacing:.09em;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:2}
-  tbody td{padding:12px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top}
-  tbody tr{transition:background .1s;cursor:pointer}
-  tbody tr:hover{background:var(--surface-2)}
-  tbody tr.plat td:first-child{box-shadow:inset 3px 0 0 var(--plat)}
-  .pjt{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13px;letter-spacing:-.01em}
-  .sub-mono{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted)}
-  .chip{font-size:9.5px;font-weight:600;font-family:"JetBrains Mono",monospace;padding:3px 7px;border-radius:6px;letter-spacing:.03em;white-space:nowrap;display:inline-block}
-  .cat-Platinum{background:rgba(192,173,247,.13);color:var(--plat)} .cat-Gold{background:rgba(217,178,92,.13);color:var(--gold)}
-  .cat-Silver{background:rgba(183,194,212,.1);color:var(--silver)} .cat-Bronze{background:rgba(200,141,99,.12);color:var(--bronze)}
-  .cat-POC{background:rgba(66,184,204,.1);color:var(--brand)}
-  .stbadge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500}
-  .stbadge .sd{width:7px;height:7px;border-radius:50%}
-  .pr-Critical{background:rgba(242,100,127,.15);color:var(--churn)} .pr-High{background:rgba(244,177,60,.15);color:var(--delay)}
-  .pr-Medium{background:rgba(79,176,236,.14);color:var(--track)} .pr-Low{background:rgba(47,211,154,.13);color:var(--live)}
-  .dd{font-family:"Space Grotesk",sans-serif;font-weight:600}
-  .upd{color:#c0cde1;max-width:360px;line-height:1.5}
-  .upd.clip{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:15px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  thead th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel-2);cursor:pointer;user-select:none;white-space:nowrap}
+  thead th:hover{color:var(--ink-1)}.ar{color:var(--brand);margin-left:4px}
+  tbody td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top;font-size:13px}
+  tbody tr.main{cursor:pointer;transition:background .12s}tbody tr.main:hover{background:#141F30}
+  tbody tr:last-child td{border-bottom:none}
+  .pname{font-weight:600;color:var(--ink-1);display:flex;align-items:center;gap:8px}
+  .pname .chev{color:var(--ink-3);transition:transform .18s;flex:none}tr.main.open .chev{transform:rotate(90deg);color:var(--brand)}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;white-space:nowrap}
+  .badge i{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .prio{font-family:'JetBrains Mono';font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px}
+  .tier{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:6px;border:1px solid var(--line);color:var(--ink-2)}
+  .tier.Platinum{color:#D9E2F1;border-color:#3A4A64;background:#1a2437}.tier.Gold{color:#F5C451;border-color:#5a4a1e}.tier.Silver{color:#C3CEDE;border-color:#3a4457}.tier.Bronze{color:#D69A6A;border-color:#523a26}
+  .muted{color:var(--ink-3)}
+  .upd{color:var(--ink-2);max-width:340px}.upd .ud{font-family:'JetBrains Mono';font-size:10.5px;color:var(--brand);display:block;margin-bottom:2px}
+  .upd .ut,.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .age{font-family:'JetBrains Mono';font-size:12px}.age.over{color:var(--s-risk);font-weight:600}.age.warn{color:var(--s-test)}
+  tr.detail td{background:var(--panel-2);padding:0}
+  .detail-inner{padding:18px 20px 20px;display:grid;grid-template-columns:1.3fr 1fr;gap:26px}
+  .meta-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 22px}
+  .meta-grid .k{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:600}
+  .meta-grid .val{font-size:13px;color:var(--ink-1);margin-top:3px;white-space:pre-wrap}
+  .leader-note{margin-top:16px;background:#0c1420;border:1px solid var(--line);border-left:3px solid var(--brand-dim);border-radius:9px;padding:11px 13px}
+  .leader-note .k{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--brand);font-weight:600;margin-bottom:5px}
+  .leader-note .val{font-size:12.5px;color:var(--ink-2);white-space:pre-wrap}
+  .timeline .k{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:600;margin-bottom:10px}
+  .tl-scroll{max-height:340px;overflow-y:auto;padding-right:6px}.tl-scroll::-webkit-scrollbar{width:6px}.tl-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+  .tl-item{position:relative;padding:0 0 14px 18px;border-left:1px solid var(--line)}.tl-item:last-child{border-left-color:transparent;padding-bottom:0}
+  .tl-item::before{content:"";position:absolute;left:-4.5px;top:3px;width:8px;height:8px;border-radius:50%;background:var(--brand-dim)}
+  .tl-item:first-child::before{background:var(--brand);box-shadow:0 0 0 3px rgba(47,227,196,.15)}
+  .tl-item .d{font-family:'JetBrains Mono';font-size:10.5px;color:var(--brand);margin-bottom:3px}.tl-item .t{font-size:12.5px;color:var(--ink-2);white-space:pre-wrap}
 
-  /* controls */
-  .controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:16px}
-  .search{flex:1;min-width:210px;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;
-    padding:10px 13px;color:var(--text);font-family:inherit;font-size:13px}
-  .search::placeholder{color:var(--faint)} .search:focus{outline:none;border-color:var(--brand)}
-  .seg{font-size:11.5px;font-weight:500;padding:8px 12px;border-radius:8px;cursor:pointer;background:var(--surface);
-    border:1px solid var(--line-2);color:var(--muted);transition:.12s;user-select:none}
-  .seg:hover{color:var(--text);border-color:var(--faint)} .seg.on{background:var(--surface-3);color:var(--text);border-color:var(--brand)}
-  .lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);margin:0 3px}
+  .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .buddy{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px}
+  .buddy .bn{font-family:'Space Grotesk';font-weight:600;font-size:14px}
+  .buddy .meta{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+  .buddy .row{display:flex;justify-content:space-between;font-size:12px;margin-top:9px;color:var(--ink-2)}
+  .buddy .row b{color:var(--ink-1);font-weight:500}
+  .rchip{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:6px;border:1px solid var(--brand-dim);color:var(--brand);background:rgba(47,227,196,.08)}
 
-  /* tech */
-  .techgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
-  .tcard{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);
-    padding:16px 17px;border-left:3px solid var(--delay)}
-  .tcard.resolved{border-left-color:var(--live);opacity:.78}
-  .tcard .th{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-  .tcard .tp{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14.5px;letter-spacing:-.01em}
-  .tcard .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
-  .tag{font-size:9.5px;font-weight:600;font-family:"JetBrains Mono",monospace;padding:2.5px 7px;border-radius:6px}
-  .tag.open{background:rgba(244,177,60,.15);color:var(--delay)} .tag.res{background:rgba(47,211,154,.13);color:var(--live)}
-  .tag.c360{background:rgba(66,184,204,.12);color:var(--brand)} .tag.client{background:rgba(242,100,127,.14);color:var(--churn)}
-  .tcard .meta{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--faint);margin-top:10px}
-  .tcard .issue{font-size:12.5px;color:#c0cde1;margin-top:11px;line-height:1.55;white-space:pre-line}
-  .tcard .latest{font-size:12px;color:var(--muted);margin-top:11px;padding-top:11px;border-top:1px solid var(--line-soft);line-height:1.55}
-  .tcard .latest b{color:var(--text);font-weight:600}
-  .miniov{display:grid;grid-template-columns:repeat(5,1fr);gap:11px}
-  .mini{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:11px;padding:14px;text-align:center}
-  .mini .n{font-family:"Space Grotesk",sans-serif;font-size:23px;font-weight:600;letter-spacing:-.02em}
-  .mini .l{font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-top:6px}
+  .setup{max-width:640px;margin:60px auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:32px}
+  .setup h2{font-size:19px;margin-bottom:8px}.setup p,.setup ol{color:var(--ink-2);font-size:13.5px}
+  .setup code{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;font-family:'JetBrains Mono';font-size:12px;color:var(--brand)}
+  .setup ol{line-height:1.8;padding-left:20px}
+  .setup input{width:100%;margin-top:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;color:var(--ink-1);padding:11px 13px;font-family:'JetBrains Mono';font-size:12.5px;outline:none}
+  .setup button{margin-top:12px;background:var(--brand);color:#04211D;border:none;border-radius:10px;padding:11px 20px;font-family:'Space Grotesk';font-weight:600;font-size:13.5px;cursor:pointer}
+  .banner{background:#2a1518;border:1px solid #5a2a2e;color:#f3b6b6;border-radius:11px;padding:12px 16px;margin-bottom:16px;font-size:13px}
+  .skeleton{background:var(--panel);border:1px solid var(--line);border-radius:13px;height:96px;position:relative;overflow:hidden}
+  .skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:sh 1.3s infinite}@keyframes sh{to{transform:translateX(100%)}}
+  .hidden{display:none!important}.empty{text-align:center;padding:50px 20px;color:var(--ink-3)}
 
-  .empty{text-align:center;padding:48px;color:var(--faint);font-size:13px}
-  .sheetcell{white-space:pre-wrap;word-break:break-word;max-width:340px;color:#c0cde1;font-size:12px;vertical-align:top}
-  .tab.dyn .cnt{background:var(--surface)}
-  .sheetnote{font-size:11.5px;color:var(--faint);margin:-6px 0 14px}
-  .skpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
-  .skpi{background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:15px 16px}
-  .skpi .skn{font-family:"Space Grotesk",sans-serif;font-size:25px;font-weight:600;letter-spacing:-.02em;color:var(--text)}
-  .skpi .skl{font-size:10px;color:var(--muted);margin-top:7px;text-transform:uppercase;letter-spacing:.06em}
-  .sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:18px}
-  .rawwrap{margin-top:4px}
-  .rawwrap>summary{cursor:pointer;font-size:12.5px;color:var(--muted);padding:11px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:9px}
-  .rawwrap>summary::-webkit-details-marker{display:none}
-  .rawwrap>summary:before{content:"▸";color:var(--faint);transition:.15s;display:inline-block}
-  .rawwrap[open]>summary:before{transform:rotate(90deg)}
-  .rawwrap>summary:hover{color:var(--text)}
-  footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--faint);
-    display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
-
-  @media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}.grid3,.grid2{grid-template-columns:1fr}.techgrid{grid-template-columns:1fr}.miniov{grid-template-columns:repeat(3,1fr)}}
-  @media(max-width:560px){.wrap{padding:0 16px 60px}.appbar{margin:0 -16px 22px;padding:14px 16px}.kpis{grid-template-columns:repeat(2,1fr)}}
-  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:9px}::-webkit-scrollbar-track{background:transparent}
+  @media(max-width:1180px){.pipeline{grid-template-columns:repeat(4,1fr)}.stage.risk-lane{grid-column:span 4}.kpis{grid-template-columns:repeat(3,1fr)}.grid.c3{grid-template-columns:1fr 1fr}.radar{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:760px){main{padding:16px}.pipeline{grid-template-columns:repeat(2,1fr)}.stage.risk-lane{grid-column:span 2}.kpis{grid-template-columns:repeat(2,1fr)}.grid.c2,.grid.c3{grid-template-columns:1fr}.detail-inner{grid-template-columns:1fr}.col-hide{display:none}.brandtext{display:none}}
 </style>
 </head>
 <body>
-<div class="wrap">
+<header class="topbar">
+  <div class="brandmark"><div class="logo">C</div><div class="brandtext"><h1>Delivery Control Tower</h1><div class="sub">Chat360 · Delivery Ops</div></div></div>
+  <nav class="sections" id="nav"></nav>
+  <div class="sync"><span class="dot" id="syncDot"></span><span id="syncText">Connecting…</span></div>
+  <button class="icon-btn" id="refreshBtn" title="Refresh now"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg></button>
+</header>
 
-  <div class="appbar">
-    <div class="brand">
-      <div class="glyph"></div>
-      <div>
-        <h1>Chat360 · Delivery Board</h1>
-        <div class="sub"><b>All-tier</b> delivery health · tech issues · full project tracker</div>
-      </div>
-    </div>
-    <div class="barctl">
-      <div class="sync"><span id="syncTime">—</span></div>
-      <span class="livechip" id="livechip"><span class="led"></span><span id="livetext">Snapshot</span></span>
-      <button class="btn" id="refresh">↻ Refresh</button>
-    </div>
+<main>
+  <div id="banner"></div>
+
+  <section id="setup" class="setup hidden">
+    <h2>Connect your live data source</h2>
+    <p>Paste the Apps Script Web App URL (the <code>…/exec</code> link) deployed from <code>Code.gs</code>. It reads all delivery tabs live on every load.</p>
+    <ol><li>Sheet → <b>Extensions → Apps Script</b>, paste <code>Code.gs</code>.</li>
+    <li><b>Deploy → New deployment → Web app</b>. Execute as <b>Me</b>, access <b>Anyone</b>.</li>
+    <li>Copy the <code>/exec</code> URL below (or set <code>API_URL</code> in this file).</li></ol>
+    <input id="apiInput" placeholder="https://script.google.com/macros/s/…/exec" />
+    <button id="apiSave">Connect</button>
+  </section>
+
+  <div id="loading" class="hidden">
+    <div class="pipeline"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    <div class="kpis" style="margin-top:20px"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
   </div>
 
-  <div class="nav">
-    <div class="tab on" data-view="overview">Overview</div>
-    <div class="tab" data-view="tracker">Delivery Tracker <span class="cnt" id="tcnt">0</span></div>
-    <div class="tab" data-view="tech">Tech Issues <span class="cnt" id="ecnt">0</span></div>
-  </div>
-
-  <!-- ============ OVERVIEW ============ -->
-  <section class="view on" id="v-overview">
-    <div class="eyebrow">Portfolio</div>
-    <div class="scopebar" id="scopeBar"></div>
+  <!-- EXECUTIVE -->
+  <section id="v-exec" class="view hidden">
+    <div class="section-eyebrow">Delivery pipeline · live phase distribution</div>
+    <div class="pipeline" id="pipeline"></div>
     <div class="kpis" id="kpis"></div>
-
-    <div class="eyebrow">Delivery risk</div>
-    <div class="grid3">
-      <div class="card">
-        <div class="hd"><span class="dot"></span><h2 id="drTitle">Platinum delay rate</h2></div>
-        <div class="bd"><div class="donut-wrap">
-          <div class="donut" id="donut"><div class="inner"><b id="drVal">0%</b><span>delayed</span></div></div>
-          <div class="drleg" id="drLeg"></div>
-        </div></div>
-      </div>
-      <div class="card">
-        <div class="hd"><span class="dot"></span><h2 id="c2title">Delayed by priority</h2></div>
-        <div class="bd" id="c2body"></div>
-      </div>
-      <div class="card">
-        <div class="hd"><span class="dot"></span><h2 id="c3title">Delayed / on-hold by root cause</h2></div>
-        <div class="bd" id="c3body"></div>
-      </div>
+    <div class="section-eyebrow" style="margin-top:22px">Go-live radar · week of delivery</div>
+    <div class="radar" id="radar"></div>
+    <div class="grid c3">
+      <div class="card"><div class="hd"><h3>Phase distribution</h3><span class="meta" id="phaseMeta"></span></div><div class="chart-wrap"><canvas id="phaseChart"></canvas></div></div>
+      <div class="card"><div class="hd"><h3>Account tier mix</h3><span class="meta">by value segment</span></div><div class="chart-wrap"><canvas id="tierChart"></canvas></div></div>
+      <div class="card"><div class="hd"><h3>PM split</h3><span class="meta">active load</span></div><div class="chart-wrap"><canvas id="pmChart"></canvas></div></div>
     </div>
-
-    <div class="grid2">
-      <div class="card">
-        <div class="hd"><span class="dot"></span><h2 id="csmTitle">Delayed Platinum by CSM</h2></div>
-        <div class="bd" id="csmBody"></div>
-      </div>
-      <div class="card">
-        <div class="hd"><span class="dot"></span><h2 id="bbTitle">Delayed Platinum by bot builder</h2></div>
-        <div class="bd" id="bbBody"></div>
-      </div>
-    </div>
-
-    <div class="eyebrow">At-risk detail</div>
-    <div class="card" style="margin-bottom:26px">
-      <div class="hd"><span class="dot"></span><h2 id="detTitle">Delayed &amp; on-hold Platinum</h2><span class="pill" id="detCnt">0</span></div>
-      <div class="tscroll">
-        <table><thead><tr>
-          <th>Project</th><th>CSM</th><th>PM</th><th>Bot Builder</th><th>Days</th><th>Priority</th><th>Root Cause</th><th>Latest Update</th>
-        </tr></thead><tbody id="detBody"></tbody></table>
-      </div>
-    </div>
-
-    <div class="eyebrow">Engineering</div>
-    <div class="card">
-      <div class="hd"><span class="dot" style="background:var(--delay)"></span><h2>Tech issues overview</h2></div>
-      <div class="bd"><div class="miniov" id="techMini"></div></div>
+    <div class="grid c2" style="margin-top:16px">
+      <div class="card"><div class="hd"><h3>CSM workload</h3><span class="meta">active projects</span></div><div class="chart-wrap tall"><canvas id="csmChart"></canvas></div></div>
+      <div class="card"><div class="hd"><h3>Go-lives delivered</h3><span class="meta">by month · actual date</span></div><div class="chart-wrap tall"><canvas id="golivesChart"></canvas></div></div>
     </div>
   </section>
 
-  <!-- ============ TRACKER ============ -->
-  <section class="view" id="v-tracker">
-    <div class="controls">
-      <input class="search" id="trkSearch" placeholder="Search project, CSM, PM, bot builder…" />
-      <span class="lbl">Tier</span><div id="trkCat" style="display:flex;gap:5px;flex-wrap:wrap"></div>
-      <span class="lbl">Status</span><div id="trkStatus" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+  <!-- PROJECTS -->
+  <section id="v-projects" class="view hidden">
+    <div class="toolbar">
+      <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="p-search" placeholder="Search project, CSM, owner, update text…"/></div>
+      <select class="filter" id="p-phase"></select><select class="filter" id="p-tier"></select><select class="filter" id="p-csm"></select><select class="filter" id="p-pm"></select><select class="filter" id="p-city"></select>
+      <button class="clearbtn" id="p-clear">Clear</button><span class="count-tag"><b id="p-count">0</b> projects</span>
     </div>
-    <div class="tablecard"><div class="tscroll">
-      <table><thead><tr>
-        <th>Project</th><th>Tier</th><th>CSM</th><th>PM</th><th>Bot Builder</th><th>Phase</th><th>Status</th><th>Days</th><th>Priority</th><th>Root Cause</th><th>Latest Update</th>
-      </tr></thead><tbody id="trkBody"></tbody></table>
-    </div></div>
+    <div class="tablewrap"><table><thead><tr id="p-head"></tr></thead><tbody id="p-body"></tbody></table><div id="p-empty" class="empty hidden">No projects match these filters.</div></div>
   </section>
 
-  <!-- ============ TECH ============ -->
-  <section class="view" id="v-tech">
-    <div class="controls">
-      <input class="search" id="techSearch" placeholder="Search issue, project, owner…" />
-      <span class="lbl">Status</span><div id="techStatusF" style="display:flex;gap:5px;flex-wrap:wrap"></div>
-      <span class="lbl">Owner</span><div id="techOwnerF" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+  <!-- BUILD TASKS -->
+  <section id="v-build" class="view hidden">
+    <div class="kpis" id="b-kpis"></div>
+    <div class="grid c3" style="margin-top:4px">
+      <div class="card"><div class="hd"><h3>Task status</h3><span class="meta" id="b-statusMeta"></span></div><div class="chart-wrap"><canvas id="bStatusChart"></canvas></div></div>
+      <div class="card"><div class="hd"><h3>Priority mix</h3><span class="meta">P0 = highest</span></div><div class="chart-wrap"><canvas id="bPrioChart"></canvas></div></div>
+      <div class="card"><div class="hd"><h3>Builder workload</h3><span class="meta">active tasks</span></div><div class="chart-wrap"><canvas id="bBuilderChart"></canvas></div></div>
     </div>
-    <div class="techgrid" id="techBody"></div>
+    <div class="toolbar" style="margin-top:20px">
+      <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="b-search" placeholder="Search task, builder, CSM, update…"/></div>
+      <select class="filter" id="b-status"></select><select class="filter" id="b-prio"></select><select class="filter" id="b-builder"></select>
+      <button class="clearbtn" id="b-clear">Clear</button><span class="count-tag"><b id="b-count">0</b> tasks</span>
+    </div>
+    <div class="tablewrap"><table><thead><tr id="b-head"></tr></thead><tbody id="b-body"></tbody></table><div id="b-empty" class="empty hidden">No tasks match these filters.</div></div>
   </section>
 
-  <div id="dynViews"></div>
+  <!-- TECH ISSUES -->
+  <section id="v-issues" class="view hidden">
+    <div class="kpis" id="t-kpis"></div>
+    <div class="toolbar" style="margin-top:20px">
+      <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="t-search" placeholder="Search project, owner, detail…"/></div>
+      <select class="filter" id="t-status"></select><select class="filter" id="t-at"></select>
+      <button class="clearbtn" id="t-clear">Clear</button><span class="count-tag"><b id="t-count">0</b> issues</span>
+    </div>
+    <div class="tablewrap"><table><thead><tr id="t-head"></tr></thead><tbody id="t-body"></tbody></table><div id="t-empty" class="empty hidden">No issues match these filters.</div></div>
+  </section>
 
-  <footer>
-    <div style="max-width:680px">Live from the Chat360 Tracker · Platinum analytics computed in-browser. Priority &amp; root cause populate automatically once those columns exist in the source tab.</div>
-    <div class="mono" id="asof">—</div>
-  </footer>
-</div>
+  <!-- HANDOVER -->
+  <section id="v-handover" class="view hidden">
+    <div class="kpis" id="h-kpis"></div>
+    <div class="toolbar" style="margin-top:20px">
+      <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="s-search" placeholder="Search client, CSM, dependency…"/></div>
+      <select class="filter" id="s-csm"></select><select class="filter" id="s-tier"></select><select class="filter" id="s-dep"></select>
+      <button class="clearbtn" id="s-clear">Clear</button><span class="count-tag"><b id="s-count">0</b> in pipeline</span>
+    </div>
+    <div class="tablewrap"><table><thead><tr id="s-head"></tr></thead><tbody id="s-body"></tbody></table><div id="s-empty" class="empty hidden">No handover items match.</div></div>
+  </section>
+
+  <!-- TEAM -->
+  <section id="v-team" class="view hidden">
+    <div class="grid c2">
+      <div class="card"><div class="hd"><h3>Builder throughput</h3><span class="meta">all tasks (done + active)</span></div><div class="chart-wrap tall"><canvas id="teamChart"></canvas></div></div>
+      <div class="card"><div class="hd"><h3>Active build load</h3><span class="meta">open tasks per builder</span></div><div class="chart-wrap tall"><canvas id="teamActiveChart"></canvas></div></div>
+    </div>
+    <div class="section-eyebrow" style="margin-top:24px">Bot builder buddy plan · enablement</div>
+    <div class="team-grid" id="buddyGrid"></div>
+  </section>
+</main>
 
 <script>
-/* ===== LIVE CONFIG ===== */
-const LIVE = {
-  enabled: true,
-  mode: "api",
-  apiUrl: "https://script.google.com/macros/s/AKfycbyCPIvEC4dbpRFqWShUowWez9vz_qABMaBlKWyWrzyxQqdQofYHXuVFasCQGK3GaYTs/exec",
-  sheetId: "", trackerTab: "Delivery Tracker", techTab: "Tech Issues",
-  refreshMs: 0
-};
-const TRACKER_MAP = {"Project":"project","CSM":"csm","PM":"pm","Bot Builder / Owner":"bb","Category":"category","Tentative Go-Live":"tentative","Actual Go-Live":"actual","Project Phase":"phase","Delivery Status":"status","Days Delayed":"daysDelayed","Priority":"priority","Delay Root Cause":"rootCause","Latest Update":"update","Last Update Date":"lastUpdate"};
-const TECH_MAP    = {"Project":"project","PM":"pm","CSM":"csm","Issue Details":"issue","Timeline / ETA":"eta","Go-Live Date":"goLive","Status":"status","Issue Owner":"owner","Assigned To":"assignedTo","Latest Update":"update"};
+/* ================= CONFIG ================= */
+let API_URL = "";   // paste your Apps Script /exec URL here, or pass ?api=…
 
-const SNAPSHOT_TRACKER = [{"project": "TRUST Group", "csm": "Ritika Thakre", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "09 Oct 2025", "actual": "09 Oct 2025", "phase": "Initiation", "status": "Delayed", "daysDelayed": "267", "priority": "Critical", "rootCause": "Client-Side Dependency", "update": "Blue tick approved, Ajinkya is speaking to the client for an inperson visit and to define what we can do next for more engagment.", "lastUpdate": "29th June"}, {"project": "Curebay", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Rohit", "category": "Gold", "tentative": "02 Jan 2026", "actual": "03 Jan 2026", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "182", "priority": "Critical", "rootCause": "Client-Side Dependency", "update": "Live but Client has shared changes, Chinmay is working on the solutioning document & flow, once ready we can share with client. It is still WIP by Chinmay & is going to share in this week. Akshay is creating the diagram currently. follow up taken on floor  & DM", "lastUpdate": "26th June"}, {"project": "Promilio", "csm": "Savitha S", "pm": "Tunir", "bb": "Musharraf", "category": "POC Free", "tentative": "27 Feb 2026", "actual": "", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "126", "priority": "Critical", "rootCause": "Commercial / PO Pending", "update": "Samarth has discussed commercials with the client separately over call, CSM is not marked on it. Client is reviewing other vendors also, they will connect with the CSM once they are ready as confirmed by Samarth previously. have informed CSM to drop email for the same. Highlighted to Raniji. Samarth confirmed client is not responding", "lastUpdate": "26th June"}, {"project": "Indiahikes", "csm": "Tanveer Saji", "pm": "Piyush", "bb": "", "category": "Gold", "tentative": "04 Mar 2026", "actual": "30 Sep 2025", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "121", "priority": "Critical", "rootCause": "Internal Dev / QA", "update": "Clinet have tested the bot , they are discussing internally for additions , they will update in next week", "lastUpdate": "8th May"}, {"project": "Waaree_Ecom", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Post go-live changes", "status": "Delayed", "daysDelayed": "110", "priority": "Critical", "rootCause": "Review Needed", "update": "Awaiting a reply on optimization plan. Solutions documents have been shared with Vishnu and awaiting a response since May.", "lastUpdate": "29th June"}, {"project": "Waaree_IST", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "110", "priority": "Critical", "rootCause": "Internal Dev / QA", "update": "On hold from Waaree's end since May and APIs are pending from Waaree. Multiple reminders sent over email and calls to Rohit. Currently, the channel is used for partner communication.", "lastUpdate": "29th June"}, {"project": "Waaree_LeadGen", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "110", "priority": "Critical", "rootCause": "Commercial / PO Pending", "update": "Arnab has shared the SOW with Anol & Yogendra on email. Waaree team to confirm and respond. Reminder shared.", "lastUpdate": "29th June"}, {"project": "Waaree_Loyalty", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "110", "priority": "Critical", "rootCause": "Internal Dev / QA", "update": "The API documentation is still pending.  This is pending since Feb. Multiple reminders were shared on the email and over calls to Rohit.", "lastUpdate": "29th June"}, {"project": "Tata Power", "csm": "Aaruni Vasu", "pm": "Komal", "bb": "", "category": "POC Free", "tentative": "20 Mar 2026", "actual": "05 Feb 2026", "phase": "Internal Testing", "status": "Delayed", "daysDelayed": "105", "priority": "Critical", "rootCause": "Internal Dev / QA", "update": "Musharraf is making chnages to the QA inputs by Yashaswi.", "lastUpdate": "29th June"}, {"project": "Club Mahindra (FAQ)_Enhancements", "csm": "Nikhil Bhagat", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "23 Mar 2026", "actual": "24 Mar 2026", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "102", "priority": "Critical", "rootCause": "Client-Side Dependency", "update": "Bot given for client UAT", "lastUpdate": "29th June"}, {"project": "Bajaj Housing Finance Limited_WA", "csm": "Pratap Kumar Verma", "pm": "Komal", "bb": "", "category": "POC Free", "tentative": "25 Mar 2026", "actual": "19 Sep 2025", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "100", "priority": "Critical", "rootCause": "Review Needed", "update": "Update from Subhodeep regarding WA bot- They will kick start the project in july end.", "lastUpdate": "29th June"}, {"project": "Bajaj Housing Finance Limited_GenAI_WA", "csm": "Pratap Kumar Verma", "pm": "Komal", "bb": "", "category": "POC Free", "tentative": "25 Mar 2026", "actual": "19 Sep 2025", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "100", "priority": "Critical", "rootCause": "Review Needed", "update": "Update from Subhodeep regarding WA bot- They will kick start the project in july end.", "lastUpdate": "29th June"}, {"project": "Baskin & Robbins", "csm": "Ritika Thakre", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "25 Mar 2026", "actual": "16 Mar 2026", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "100", "priority": "Critical", "rootCause": "Review Needed", "update": "Brinold is back in action and will convey the feedbacks soon. Dropped a reminder email and WA to Rushikesh on the group, Ritika had called and response is expected by CEO after one final test from their CEO’s end is pending before going live, go-live will be confirmed by Brinold.", "lastUpdate": "29th June"}, {"project": "PSRI", "csm": "Arnab Chakraborty", "pm": "Piyush", "bb": "", "category": "Gold", "tentative": "30 Mar 2026", "actual": "01 Apr 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "95", "priority": "Critical", "rootCause": "Client-Side Dependency", "update": "Module change going on at client's end, once done they will be letting us know so that we can proceed with the base 64 dev and also, they will be providing the APIs for the whatsapp bot", "lastUpdate": "25th May"}, {"project": "Adani Airports", "csm": "Ishu Rustagi", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "20 Apr 2026", "actual": "29 Apr 2026", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "74", "priority": "High", "rootCause": "Client-Side Dependency", "update": "WA Bot - Client testing feedback WIP, eod. Web - Internal testing WIP. Web UI mockups - v3 provided, negative feedbacks, meeting on Tue", "lastUpdate": "29th June"}, {"project": "YODA", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "Atharva", "category": "", "tentative": "22 Apr 2026", "actual": "30 Apr 2026", "phase": "Bot building", "status": "Delayed", "daysDelayed": "72", "priority": "High", "rootCause": "Internal Dev / QA", "update": "Flow is Completed , integration is pending now", "lastUpdate": "2nd July"}, {"project": "LearningShala", "csm": "Akshita Verma", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "25 Apr 2026", "actual": "17 Jan 2026", "phase": "Initiation", "status": "Delayed", "daysDelayed": "69", "priority": "High", "rootCause": "Review Needed", "update": "Cleint is not responding to CSM calls", "lastUpdate": "5th June"}, {"project": "BPL MedTech", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "Sliver", "tentative": "25 Apr 2026", "actual": "20 Sep 2025", "phase": "Go-live readiness", "status": "Delayed", "daysDelayed": "69", "priority": "High", "rootCause": "Third-Party Vendor Dependency", "update": "problem at meta end", "lastUpdate": "2nd July"}, {"project": "Simple Energy", "csm": "Savitha S", "pm": "Komal", "bb": "", "category": "POC Paid", "tentative": "30 Apr 2026", "actual": "01 Jul 2026", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "64", "priority": "High", "rootCause": "Client-Side Dependency", "update": "Last week, we had a call with the client to discuss the API integration requirements. We need to share the API cURL details with the client today, post which they will share the APIs that need to be integrated", "lastUpdate": "29th June"}, {"project": "Jeep India & Citroen India - Stellantis", "csm": "Nikhil Bhagat", "pm": "Tunir", "bb": "Deepak & Gaurav", "category": "Platinum", "tentative": "07 May 2026", "actual": "13 Nov 2023", "phase": "Scope/Flow/ discussion", "status": "Delayed", "daysDelayed": "57", "priority": "High", "rootCause": "Review Needed", "update": "PO for Citreon has not yet been received. Sabu is following up.  Daily Campaigns Live + 2 new campaigns for offers", "lastUpdate": "29th June"}, {"project": "Liquide Life", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "POC Free", "tentative": "15 May 2026", "actual": "", "phase": "Bot building", "status": "Delayed", "daysDelayed": "49", "priority": "High", "rootCause": "Review Needed", "update": "few chnages have been recived from clinet will take up today", "lastUpdate": "2nd July"}, {"project": "Arka", "csm": "Arnab Chakraborty", "pm": "Piyush", "bb": "Athrav,Abhijeet Malayli", "category": "Platinum", "tentative": "19 May 2026", "actual": "25 May 2026", "phase": "Bot building", "status": "Delayed", "daysDelayed": "45", "priority": "High", "rootCause": "Client-Side Dependency", "update": "Web: The web bot was live and functioning correctly. However, the parent company of Arka has raised an objection regarding the footer displaying \"Powered by Chat360.io\".  WhatsApp: The static flow has been completed. The dynamic WhatsApp forms are still pending, and Gaurav has been aligned to work on them.  SFTP: We tested the SFTP integration, and it was working as expected. However, an issue was identified with the English and Hindi voice bots. Abhijit is currently working on resolving it.  Voice : Voice bots for all the remaining languages will be delivered to the client today.", "lastUpdate": "2nd July"}, {"project": "Hyundai Motors", "csm": "Sana Naaz", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "28 May 2026", "actual": "", "phase": "Post go-live changes", "status": "Delayed", "daysDelayed": "36", "priority": "High", "rootCause": "Internal Dev / QA", "update": "There are chnages in the two flows rohit is working on them", "lastUpdate": "2nd July"}, {"project": "Hyundai Mobis", "csm": "Sana Naaz", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "01 Jun 2026", "actual": "", "phase": "Integration", "status": "Delayed", "daysDelayed": "32", "priority": "High", "rootCause": "Internal Dev / QA", "update": "We will Show UI -UX on staging , review meet tomorrow, post approval we will make it live as per the new timelines which will be decided after approval .", "lastUpdate": "2nd July"}, {"project": "Piramal", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Paresh", "category": "POC Free", "tentative": "02 Jun 2026", "actual": "03 Jun 2026", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "31", "priority": "High", "rootCause": "Client-Side Dependency", "update": "Shared to client for UAT, CSM is dropping mail for the same to client as discussed, have followed up with Ajinkya as well for POC ending status & onboarding, he will get back , follow up taken, client visit is getting scheduled for the same. confirmed with ajinnkya on floor today", "lastUpdate": "26th June"}, {"project": "Nandan Groups_Enhancements (post go-live)", "csm": "Sana Khan", "pm": "Komal", "bb": "Ritika Sen", "category": "Bronze", "tentative": "25 Jun 2026", "actual": "", "phase": "Internal Testing", "status": "Delayed", "daysDelayed": "8", "priority": "Medium", "rootCause": "Internal Dev / QA", "update": "Internal QA in WIP", "lastUpdate": "29th June"}, {"project": "LIC", "csm": "Nain Titoria", "pm": "Tunir", "bb": "Siddharth & Omkar", "category": "Platinum", "tentative": "29 Jun 2026", "actual": "02 Jun 2026", "phase": "Integration", "status": "Delayed", "daysDelayed": "4", "priority": "Low", "rootCause": "Third-Party Vendor Dependency", "update": "Modifications received from business team of Kfintech, Omkar is checking & will confirm on ETA", "lastUpdate": "2nd July"}, {"project": "Borosil", "csm": "Abhishek Yadav", "pm": "Tunir", "bb": "Musharraf", "category": "Gold", "tentative": "30 Jun 2026", "actual": "", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "3", "priority": "Low", "rootCause": "Client-Side Dependency", "update": "musharraf has completed the issues & with internal UAT. shared to client for UAT, waiting to hear back to connect on same. POC is OOO", "lastUpdate": "2nd July"}, {"project": "JP Infra", "csm": "Nikhil Bhagat", "pm": "Tunir", "bb": "Musharraf & Vedant", "category": "Platinum", "tentative": "30 Jun 2026", "actual": "", "phase": "Bot building", "status": "Delayed", "daysDelayed": "3", "priority": "Low", "rootCause": "Internal Dev / QA", "update": "\"Non API Voice flow is working fine, all the issues have been fixed  API flow work has begun. The team was facing an api error, which is now sorted. @Musharaf Dawooth is working on it & have added all the delivery dates for API driven flows on the pre-requisite sheet which is 30th June, sharing for internal UAT today  We have shared a flowchart with Kajal for Agentic AI for the chatbots. It is approved & Vedant is working on BB, we have shared date as 30th June for delivery, sharing for internal UAT today", "lastUpdate": "26th June"}, {"project": "Hiranandani", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Deepak & Aryan", "category": "Platinum", "tentative": "01 Jul 2026", "actual": "02 Jun 2026", "phase": "Bot building", "status": "Delayed", "daysDelayed": "2", "priority": "Low", "rootCause": "Client-Side Dependency", "update": "Shared all 5 bots to client for UAT with data training done   Main bot script is shared with client to make the bot live & other bots are shared with client for UAT. Aryan & Arnab went on client visit to make the bots live but There are changes requested by client. And some parts are not aligned with their requirements. So Aryan will make these changes and share it by tomorrow", "lastUpdate": "29th June"}, {"project": "TVS Credit Lead Gen", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "Musharraf", "category": "Platinum", "tentative": "02 Jul 2026", "actual": "", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "1", "priority": "Low", "rootCause": "Client-Side Dependency", "update": "I have shared RCA & timelines in the excel sheet as client requested. The updates are done & pushed to production now.  Have dropped email to client for the same & UAT", "lastUpdate": "26th June"}, {"project": "Autovista - In house voice bot", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Aditya & Vedant", "category": "Bronze", "tentative": "02 Jul 2026", "actual": "25 Oct 2025", "phase": "Client Testing", "status": "Delayed", "daysDelayed": "1", "priority": "Low", "rootCause": "Client-Side Dependency", "update": "\"Feasibilty doc shared with Irwin, & call is done, we shared go live dates for each developements having pendency at our end, swastik will take follow up on pendencies as discussed with Raniji, follow up taken on group with Irwin to share priority developements list  Other than this we have received additional chatbot & voicebot request on which i have assigned BB;s & shared to client for UAT on mail, follow up taken on group & mail\"  We have now received feedback on voice sales bot, pranav jakkani is checking  & fixing the issues", "lastUpdate": "26th June"}, {"project": "Motilal HR", "csm": "Nain Titoria", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "31 Mar 2026", "actual": "10 Oct 2025", "phase": "Not responding/ Sales", "status": "On Hold", "daysDelayed": "", "priority": "", "rootCause": "On Hold / Mgmt Decision", "update": "The client has requested us to develop the API from our end. This would be an additional scope item and should be commercially evaluated.  Sabu needs to align with Shivam regarding the SOW and commercials. Once the scope and commercials are finalized, we can proceed with the development.", "lastUpdate": "5th June"}, {"project": "Audi India", "csm": "Nikhil Bhagat", "pm": "Tunir", "bb": "Musharraf & Deepak", "category": "Platinum", "tentative": "08 May 2026", "actual": "13 Jun 2023", "phase": "On Hold", "status": "On Hold", "daysDelayed": "", "priority": "", "rootCause": "On Hold / Mgmt Decision", "update": "Voice is on hold, Rohit was working on agentic AI bot as requested by samarth & finished it, further updates are pending from client. for now the project is on HOLD until further notice as confirmed by Raniji", "lastUpdate": "29th June"}, {"project": "Adi Aarogyam Hospital", "csm": "Sana Khan", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "06 Mar 2026", "actual": "07 Nov 2025", "phase": "On Hold", "status": "On Hold", "daysDelayed": "", "priority": "", "rootCause": "On Hold / Mgmt Decision", "update": "Website bot is working fine They will complete the payment once they receive the approval from their head Sana to visit in person to discuss on Whatsapp bot whenever they are available.", "lastUpdate": "29th June"}, {"project": "Enrich Beauty_Existing users_Bot", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "09 Jun 2026", "actual": "", "phase": "On Hold", "status": "On Hold", "daysDelayed": "", "priority": "", "rootCause": "On Hold / Mgmt Decision", "update": "Bot 2: (Reaching existing users) Until the clarification of Bot 1, bot 2 is under internal discussion.", "lastUpdate": "29th June"}, {"project": "Manish Malhotra", "csm": "Abhishek Yadav", "pm": "Tunir", "bb": "Abinash", "category": "Gold", "tentative": "17 Jul 2026", "actual": "", "phase": "Integration", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The client has asked to check live chats on Zoho which is not possible from our & Zoho's end. Abinash is aware on this & we have informed the same to client as well. Zoho team & client discussing internally to solve this blocker, POC is OOO, will connect once back, follow up taken they will connect on 7th July", "lastUpdate": "2nd July"}, {"project": "HOH - OMR", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Rohit", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "06 Feb 2025", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "This is in Client UAT. Client will make this live once all 5 Gen AI bots are live", "lastUpdate": "29th June"}, {"project": "VTP Realty", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Rohit & Gaurav", "category": "Platinum", "tentative": "27 Jul 2026", "actual": "18 Mar 2026", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "We have shared master bot Gen AI for testing to client, once that is approved we will shift all 13bots to Gen AI. For now client is more focused on campaigns & will update in next week for the main bot, have highlighted to Sales to expedite", "lastUpdate": "29th June"}, {"project": "Tafe Skoda_WA_GenAI", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "", "actual": "", "phase": "Post go-live changes", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Static WA is live - Gen AI discussion will be scheduled on Thursday as confirmed by the client.", "lastUpdate": "29th June"}, {"project": "TATA (TAFE)_WA_GenAI", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "", "actual": "", "phase": "Post go-live changes", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Static WA is live - Gen AI discussion will be scheduled on Thursday as confirmed by the client.", "lastUpdate": "29th June"}, {"project": "PNB", "csm": "Aryaman Sagar", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "", "actual": "17 Jun 2026", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Not started as it is pending for the aproval from the infosec team", "lastUpdate": "2nd July"}, {"project": "JCB", "csm": "Ishu Rustagi", "pm": "Tunir", "bb": "Siddharth", "category": "Platinum", "tentative": "15 Jul 2026", "actual": "", "phase": "Bot building", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "we are building a WhatsApp chatbot with Salesforce (SFDC) integration for JCB India.  Key Decisions Made 1. WhatsApp Number: Proceed with the existing live number (+91 9289996484) — no new number needed. 2. Bot Flow: JCB (Saranjeet) confirmed it should be a multilingual bot (English + 9 languages) mirroring the full website bot flow, not a simpler structure. At every callback step, the bot must collect: Name, Mobile, and Preferred Language. 3. SFDC Integration: A separate UAT account will be created on the Chat360 dashboard (using Saranjeet's email and mobile: 98992 36156) rather than the existing JCB admin production account. 4. Sequencing: WhatsApp bot go-live takes priority; SFDC integration follows (can run in parallel if bandwidth allows).  Open Items / Pending Actions  1. For UAT, JCB will provide a testing WhatsApp number and website 2.SFDC integration discussions with JCB's UK team to be coordinated in parallel 3. An in-person meeting in Delhi was proposed for the following week  We had a call with client & received the details, siddharth is working on the english language first along with Atharv, & is going to deliver today, after that he will pick up the other languages.   B. Find a Dealer - Find dealer API - pending  C. Contact Support Details", "lastUpdate": "29th June"}, {"project": "Unicommerce", "csm": "Ishu Rustagi", "pm": "Tunir", "bb": "Abinash", "category": "Platinum", "tentative": "09 Jul 2026", "actual": "27 Jun 2026", "phase": "Go-live readiness", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "we have been following up on email for making the bots go live. client confirmed that they need to modify the ticket allocation logic in Kapture before proceeding with the Chat360 go-live.  they are currently reviewing this internally and will keep us posted on the progress. highlighted to Raniji & tunir have dropped follow up mails as well. POC Shubham not responding, follow up mail dropped, Sabu is checking on this, follow up dropped", "lastUpdate": "29th June"}, {"project": "Gera Developers", "csm": "Nain Titoria", "pm": "Tunir", "bb": "Rohit & Gaurav", "category": "Platinum", "tentative": "15 Jul 2026", "actual": "", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Had a discussion with Hakim. The only pending item from their end is the additional FAQ content required for bot training. He mentioned that they are currently occupied with another project launch and expect to share the FAQs by the first week of July.  Accordingly, their target go-live date is now around 15th July.  He also requested sales team to connect with him regarding the live chat enhancement development so that those requirements can be addressed in parallel. Looped ajinkya on this, this will be done in 1st week on july, follow up mail dropped for the same. asked ajinkya to follow up again on floor", "lastUpdate": "2nd July"}, {"project": "Pride Purple", "csm": "Nain Titoria", "pm": "Tunir", "bb": "Vedant", "category": "Gold", "tentative": "17 Jul 2026", "actual": "", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "To proceed with the development and configuration of the WhatsApp chatbot, we need the following details and supporting materials from client, call is done with the client & they have shared the requirements,   pending confirmation regarding the WhatsApp number one received, we can proceed with the next steps. follow up taken on this  Need separate WhatsApp numbers for  1. Pre-Sales Chatbot 2. Post-Sales Chatbot 3. CRM Chatbot", "lastUpdate": "2nd July"}, {"project": "Club Mahindra (Main Bot)", "csm": "Nikhil Bhagat", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "57 out of 64 failed scenarios shared by Vikaas are working fine and confirmed by Sandeepan. remaining 6 WIP, 1 to be confirmed by CM Team.", "lastUpdate": "29th June"}, {"project": "Adani Realty", "csm": "Nikhil Bhagat", "pm": "Tunir", "bb": "Deepak & Siddharth Singh", "category": "Platinum", "tentative": "27 Aug 2026", "actual": "31 Dec 2025", "phase": "Bot building", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Website & Whatsapp Chatbot Enhancement -   1. Model switch from GPT 4.8 to GPT 5 or newer to meet the client's expectations. For eg. Eg: Highlight key project differentiators and factual data points instead of paragraphs. 2. Deepak working to re-prompt & along with a developer, to verify the data  3. @Siddharth Gupta - GenAI - Chat360 to assist fine tune the prompt  Timeline 1. We've started on this enhancement work and shall be delivered for UAT by 22nd. Currently the changes are done & in client UAT     Voice Bot ------------------------------------------------------------------->>>>  Timelines shared on email for Voice developements what's excluded from the timelines -  The timelines do not include set-up with Platinum One integration and usage of their phone numbers. The timeline below encompasses the utilisation of Chat360 Phone Numbers for outbound calling POC testing. The timelines do not cover any custom requirements for analytics developments and only encompasses the base reports provided by Chat360, as well as the base variables captured as per the flow during the voicebot call. Post-call CRM integration is included as per the scope. Any other integrations that are out of the scope (post-call or in call)  shall revise the scope and timelines.    Here are additional discussion points for which we need a meeting.   1.Private cloud deployment, including data-sharing requirements.  2.Define chatbot KPI requirements for integration with the CDP, along with AI-generated chat summaries and analytics requirements.  3.User profile storage and management to maintain conversational context across interactions. - Primary Key: Phone Number (shall be defined as per the scope)  4.WhatsApp Calling and associated data storage requirements.  5.Finalise the requirement for post-call integration and data push mechanisms. (Voice)", "lastUpdate": "26th June"}, {"project": "Mahindra - Free POC", "csm": "Nikhil Bhagat", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "", "actual": "13 Apr 2023", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Nova it the poc is out of India. He will be back next to next week.", "lastUpdate": "14th May"}, {"project": "Sahyadri Hospital (Appointment Gen.)", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "Musharraf", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "appointment booking is live. LSQ integration is done, cancellation & reschedule is also working fine. Shared to client for UAT. Meeting with client done  POC is changed for the same, we will get details on mails for it . Had a word with Rohan and Satyawan, shared the bot with keyword for testing, few changes might be required. Client will share those details and accordingly we will take up. follow up taken on this on mail", "lastUpdate": "26th June"}, {"project": "TVS Credit Agentic AI Bot", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "Rohit & Aryan & Balajee", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "", "phase": "Integration", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "key action items and next steps:  1. TVS Team to share the master mapping document containing the Product Codes and their corresponding Product Names that will be passed through the API. 2. Chat360 Team will train the bot based on the shared master mapping. As a fallback mechanism, in cases where a Product Code is unavailable or cannot be mapped, the bot will attempt to identify and suggest the relevant product based on the available information. 3. TVS Team to schedule a discussion with the PA Base API stakeholders to address and clarify the required API parameters and any related queries. TSV team will share master mapping and proposed meeting schedule at their convenience so that we can proceed with the bot configuration accordingly. follow up mail dropped for the same follow up taken on mail on this, client internal discussion happening on same, follow up taken with Sales (Akash) as well", "lastUpdate": "26th June"}, {"project": "TVS Credit HR Voice Bot", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "Musharraf", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "", "phase": "Integration", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "TVS team needs to provide API end point to fetch the employee leave balance. follow up taken on this, internal Mail is floated by niharika to speed up on this, we have discussed & followed up with (AKash) with Sales as well, we are taking countinue follow up on this", "lastUpdate": "26th June"}, {"project": "Shapoorji Pallonji", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Rohit", "category": "Bronze", "tentative": "03 Jul 2026", "actual": "08 Dec 2025", "phase": "Go-live readiness", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "- - Sent sheet & revised flow including bot to Siddhi (new POC) for master bot that was build by Jigar- Awaiting siddhi's feedback.  following up with ajinkya everyday on floor, client confirmed that they will run the campaign. taking regular follow up on this, client has asked to schedule a call for the same with new POC, follow up mail shared by tunir, client reverted that there is no further requirement & changes, CSM will connect with ajinkya for pending invoices & make the changes live once done.   They are merging their websites & asked to connect in Mid july & share some of our work with respect to agentic services. CSM & Sales will connect with them on next week & pitch the products.spoke with Samarth & ajinkya on floor on this", "lastUpdate": "26th June"}, {"project": "Royal Enfield", "csm": "Sana Naaz", "pm": "Piyush", "bb": "", "category": "POC Free", "tentative": "", "actual": "", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Divyanshi is discussing on the commercials with client", "lastUpdate": "26th May"}, {"project": "DLPL", "csm": "Sana Naaz", "pm": "Tunir", "bb": "Siddharth/Gupta/Musharraf/Aditya/Manas", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "17 Jun 2026", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "marketing & businees team approval pending, today live for whatsapp   Web  all good  endpoint needs whitelisting for voice", "lastUpdate": "2nd July"}, {"project": "Hexahealth", "csm": "Sana Naaz", "pm": "Tunir", "bb": "Abinash", "category": "Sliver", "tentative": "17 Jul 2026", "actual": "", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Client was facing issue for whatsapp bot for which we have given them RCA yesterday   also client is looking to set up a FB Messenger Chatbot with us and the SOW for this has been shared by @Surya Prakash.  Please find the link to access: https://docs.google.com/document/d/1kgphORxP7upr7sASOq0Qzxe3EQHITCVCnSInVMNTRJ4/edit?usp=sharing  Spoke with Akash on this, we have closed the discussion from our end, waiting from final update from Amit. Akash has connected with client & they will give clarity by end of this week, follow up taken on this, this is on HOLD as confirmed by Akaah Hashia", "lastUpdate": "2nd July"}, {"project": "Provident Housing", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "", "actual": "21 Jan 2026", "phase": "Post go-live changes", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Blue well flow is done  Northen lights will be completed by tommorow", "lastUpdate": "2nd July"}, {"project": "Marshalls", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Paresh", "category": "Sliver", "tentative": "03 Jul 2026", "actual": "", "phase": "Client Testing", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Shared to client for UAT, tried to connect with client over call for feedback but not received, follow up mail dropped already", "lastUpdate": "26th June"}, {"project": "Restroworks - Possist", "csm": "Tanveer Saji", "pm": "Tunir", "bb": "Deepak & Ritik & Siddharth Singh", "category": "POC Paid", "tentative": "31 Aug 2026", "actual": "22 Sep 2025", "phase": "Scope/Flow/ discussion", "status": "On Track", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Timeline given to chinmay & Tanveer as 28th august, chinmay will connect & confirm on this with client. once received green signal on this from client we will start with developements, follow up taken on this  on floor", "lastUpdate": "26th June"}, {"project": "Eurokids - Lighthouse Learning", "csm": "Abhishek Yadav", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "", "actual": "28 Jan 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "EuroSchool", "csm": "Abhishek Yadav", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "23 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Chnage in API requested by Client have alligned Karan for it", "lastUpdate": "2nd July"}, {"project": "Hamilton housewear", "csm": "Abhishek Yadav", "pm": "Piyush", "bb": "", "category": "Gold", "tentative": "", "actual": "24 Oct 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "JMFL", "csm": "Abhishek Yadav", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "", "actual": "21 Apr 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Advant", "csm": "Akshita Verma", "pm": "Tunir", "bb": "Deepak", "category": "Sliver", "tentative": "16 Apr 2026", "actual": "16 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live", "lastUpdate": "2nd July"}, {"project": "Doc Online", "csm": "Akshita Verma", "pm": "Tunir", "bb": "Rohit & Balaji", "category": "Platinum", "tentative": "09 May 2026", "actual": "30 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Simply Jet", "csm": "Akshita Verma", "pm": "Komal", "bb": "", "category": "Sliver", "tentative": "05 May 2026", "actual": "03 Jul 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "HOH - Eli", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Nikhil", "category": "Platinum", "tentative": "10 Mar 2026", "actual": "05 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Madhavbaug Voice Bot", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Musharraf", "category": "Gold", "tentative": "30 Apr 2026", "actual": "20 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "chatbot is live, Voice bot project dropped by Madhavbaug", "lastUpdate": "29th June"}, {"project": "Tafe Skoda_Static WA", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "25 Feb 2026", "actual": "09 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Static bot was live in March", "lastUpdate": "29th June"}, {"project": "TATA (TAFE)_Static WA", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "25 Feb 2026", "actual": "09 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Static bot was live in March", "lastUpdate": "29th June"}, {"project": "Waaree_Meta", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "Rohit /", "category": "Platinum", "tentative": "15 Mar 2026", "actual": "20 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "SS group", "csm": "Aryaman Sagar", "pm": "Piyush", "bb": "", "category": "", "tentative": "", "actual": "16 Jun 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Motilal HFC", "csm": "Nain Titoria", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "25 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Testbook", "csm": "Nain Titoria", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "24 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Everything is live", "lastUpdate": "29th June"}, {"project": "Club Mahindra (FAQ)", "csm": "Nehha Baagwe", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "23 Mar 2026", "actual": "24 Mar 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "Club Mahindra (FIT Project)", "csm": "Nehha Baagwe", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "05 May 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "SDL India", "csm": "Abhishek Yadav", "pm": "Tunir", "bb": "Pranav", "category": "Sliver", "tentative": "16 Feb 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "Club Mahindra - Experience", "csm": "Nikhil Bhagat", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "09 Apr 2026", "actual": "14 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "- Vineet has called out to shut down the experiences bot services since there is no ROI - We suggested to upgrade with Agentic AI, though the cost shared is not acceptable - Shivam to speak with Vineet regarding the cost communication & clarify the earlier set expectation.", "lastUpdate": "29th June"}, {"project": "Bajaj Housing Finance Limited_Website", "csm": "Pratap Kumar Verma", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "25 Mar 2026", "actual": "19 Sep 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live since Aug", "lastUpdate": "29th June"}, {"project": "Eicher Tractors (TMTL)", "csm": "Pratap Kumar Verma", "pm": "Tunir", "bb": "", "category": "Platinum", "tentative": "", "actual": "01 Jan 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "IIFL Samasta", "csm": "Pratap Kumar Verma", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "30 Mar 2026", "actual": "10 Jan 2023", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Lifelong", "csm": "Pratap Kumar Verma", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "13 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Aashirwad Chakki", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Deepak", "category": "Platinum", "tentative": "30 Jan 2026", "actual": "07 Nov 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "CUTM", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Musharraf", "category": "Platinum", "tentative": "02 Feb 2026", "actual": "15 Jul 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "ITC- Million Fantasies", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Ritika", "category": "Platinum", "tentative": "30 Jan 2026", "actual": "30 Jan 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "ITC- Valentine Fantastik", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "Ritika", "category": "Platinum", "tentative": "07 Feb 2026", "actual": "07 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live.", "lastUpdate": "29th June"}, {"project": "Wealthstreet Financial Services", "csm": "Ritika Thakre", "pm": "Komal", "bb": "", "category": "Gold", "tentative": "27 Feb 2026", "actual": "25 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Project is Live(Web & WA Bot), emails sent.", "lastUpdate": "29th June"}, {"project": "Ishna wheels", "csm": "Sana Khan", "pm": "Komal", "bb": "Sana", "category": "Gold", "tentative": "07 May 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Campaign & WA went live on 3rd June.", "lastUpdate": "29th June"}, {"project": "Woop world", "csm": "Sana Khan", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "28 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Kapil salon", "csm": "Sana Khan", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "24 Mar 2026", "actual": "18 Oct 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Chola", "csm": "Sana Naaz", "pm": "Tunir", "bb": "Abinash", "category": "Platinum", "tentative": "22 Jun 2026", "actual": "16 Jun 2024", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Chola Telecalling", "csm": "Sana Naaz", "pm": "Tunir", "bb": "Abinash", "category": "Platinum", "tentative": "03 Jul 2026", "actual": "27 Jan 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live but client has asked for some custom developements for this aaruni connected with client to gather requirements. there are some internal critical issue is going on & discussions happening after that they will inform us in this week. accordingly we can share the commercials with client, follow up taken on this on group & DM, client has asked to Hold for now", "lastUpdate": "26th June"}, {"project": "CMR", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "20 Apr 2026", "actual": "16 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Dr. Mohan's", "csm": "Savitha S", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "25 May 2026", "actual": "16 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Enrich Beauty_new user bot", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "20 Mar 2026", "actual": "17 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "Mulugu Collectorate", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Gold", "tentative": "", "actual": "14 Jan 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The bot is live", "lastUpdate": "29th June"}, {"project": "Healpath", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "", "category": "Bronze", "tentative": "24 Feb 2026", "actual": "20 Nov 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "IKF Home", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "", "category": "Sliver", "tentative": "25 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "IndiQube", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "", "category": "Gold", "tentative": "11 Mar 2026", "actual": "23 Jan 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "2nd July"}, {"project": "Saheel Properties", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Sliver", "tentative": "16 Mar 2026", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live", "lastUpdate": "29th June"}, {"project": "Mtek", "csm": "Swastik Sharma", "pm": "Piyush", "bb": "", "category": "Sliver", "tentative": "", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "LIve", "lastUpdate": "2nd July"}, {"project": "Astral - Adhesive", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Deepak", "category": "Sliver", "tentative": "05 Feb 2026", "actual": "05 Feb 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The bot is live", "lastUpdate": "2nd July"}, {"project": "Astral - Trubuild", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Deepak", "category": "Sliver", "tentative": "01 Aug 2025", "actual": "01 Aug 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The bot is live", "lastUpdate": "2nd July"}, {"project": "Bramhacorp", "csm": "Swastik Sharma", "pm": "Tunir", "bb": "Vedant", "category": "Sliver", "tentative": "03 Jun 2026", "actual": "03 Jun 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Live, but client has asked for iframe integration. ajinkya will share commercials for this. spoke with him on floor for the same, follow up taken on floor", "lastUpdate": "26th June"}, {"project": "Mana Projects", "csm": "Tanveer Saji", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "12 Sep 2025", "actual": "20 Apr 2026", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "This is Live", "lastUpdate": "29th June"}, {"project": "Mana Projects_TRL", "csm": "Tanveer Saji", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Request raised with meta - regarding waba restriction", "lastUpdate": "29th June"}, {"project": "Ultraviolette", "csm": "Tanveer Saji", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "10 Sep 2025", "phase": "Live", "status": "Delivered", "daysDelayed": "", "priority": "", "rootCause": "", "update": "The Bots are live", "lastUpdate": "29th June"}, {"project": "Hippo Stores", "csm": "Akshita Verma", "pm": "Piyush", "bb": "", "category": "Platinum", "tentative": "26 Feb 2026", "actual": "23 Apr 2024", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Operations are closing, the company is winding up, and the account will be closed.", "lastUpdate": "6th April"}, {"project": "Terrace", "csm": "Arnab Chakraborty", "pm": "Tunir", "bb": "Abinash", "category": "Bronze", "tentative": "29 Apr 2026", "actual": "31 Mar 2026", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "\"We have updated client that the devs cannot be done.   With regard to the pending payment, we informed on call that we won't do developements until the pending payments are done. Client is not ready to pay & it is confirmed from shivam on floor, neither to do any developements & nor to give response to the client", "lastUpdate": "29th June"}, {"project": "Sunrise Hospital", "csm": "Arnab Chakraborty", "pm": "Komal", "bb": "", "category": "Bronze", "tentative": "", "actual": "31 Mar 2026", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Client ghosted on go-live ready stage, even no response to Sabu. To confirm churn on email with Sabu. infomed the same to him", "lastUpdate": "29th June"}, {"project": "Manipal Cigna Health Insurance", "csm": "Ritika Thakre", "pm": "Tunir", "bb": "", "category": "POC Free", "tentative": "", "actual": "", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "\"Status : the account is churned as confirmed by prathamesh Blocker : we have shared voice bot to client but there were few issues, & after that client stopped responding, the case is with Prathamesh. Next Steps : Client has asked to follow after a month or two", "lastUpdate": "29th June"}, {"project": "VyshaTech Solutions LLP", "csm": "Ritika Thakre", "pm": "Komal", "bb": "", "category": "Gold", "tentative": "16 Dec 2025", "actual": "06 Jan 2026", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Churned", "lastUpdate": "29th June"}, {"project": "Blue star", "csm": "Samarth Sharma", "pm": "Tunir", "bb": "Musharraf", "category": "POC Paid", "tentative": "04 Apr 2026", "actual": "07 Feb 2026", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Client is not going to countinue with us, confirmed on mail & on floor with Divyanshi same has been informed to Raniji", "lastUpdate": "26th June"}, {"project": "Lets Transport", "csm": "Savitha S", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "04 May 2026", "actual": "31 Oct 2025", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Received an email from the client  that,  current business model doesn't quite align with there specific requirements at this stage of there growth. For that reason, they won't be able to move forward with a partnership right now.", "lastUpdate": "29th June"}, {"project": "Simpel AI", "csm": "Savitha S", "pm": "Komal", "bb": "", "category": "POC Free", "tentative": "25 Apr 2026", "actual": "", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Shivam has asked Ajinkya to keep this project on hold for now", "lastUpdate": "29th June"}, {"project": "Sugar Cosmetics", "csm": "Swastik Sharma", "pm": "Komal", "bb": "", "category": "Platinum", "tentative": "", "actual": "22 May 2025", "phase": "Churned", "status": "Churned", "daysDelayed": "", "priority": "", "rootCause": "", "update": "Churned, confirmed from sales on email.", "lastUpdate": "29th June"}];
-const SNAPSHOT_TECH    = [{"project": "DLPL", "pm": "Tunir", "csm": "Sana Naaz/Aryaman", "issue": "1. Web Live Chat issues are highlighted by Client\n\n2. WhatsApp channel for Production is now live \n\n3. Voice Bot is in production setup phase", "eta": "Delivery Date - 30th June", "goLive": "Partially Live", "status": "Open", "owner": "Client", "assignedTo": "Siddharth gupta/Manas/Prathamesh/Ritwik/Shounak", "update": "Web- 1. Mis and dashboard not mattching - Abinash is checking on this with prathamesh to resolve  Voice- The KB integration is complete. Qdrant has been configured, and the bot namespace is set up. The backend/MCP integration is also complete. The DLPL Azure bot on prod has been migrated end-to-end"}, {"project": "TVS Lead Gen", "pm": "Tunir", "csm": "Pratap", "issue": "We had call with Client  & below issues/requirements were highlighted from client:\n\n1. filler words are repetative, previous call was good, but now its not correct\n2. Initially when bot asked for language preferance, it said English or Hindu instead of Hindi\n3. Price reply given by bot is 128 thousand but it should say 1 lakh 28 thousand like this\n4. When user replied \"Talwar\" to the bot it took Patna as city at the time of Pincode & city mapping\n5. User must get informed if he/she is eligible for loan after providing details\n6. Add end question - if you have any question/ can we conclude call before closing the call\n7. As per the time of the day, but should reply good morning/afternoon/evening accordingly", "eta": "Delivery Date - 30th June", "goLive": "2nd July \n(tentative)", "status": "Open", "owner": "Chat360", "assignedTo": "Musharraf/Shounak/Sai", "update": "All the first 5 feedbacks are done from Musharraf, only feedback pending is to add end question before concluding the call, once that is done we can perform UAT & share with client"}, {"project": "Club Mahindra (Main Bot)", "pm": "Komal", "csm": "Nikhil Bhagat", "issue": "Feedbacks awaited and schedule on mutual client testing at their office", "eta": "ETA - yet to receive", "goLive": "25th Jun (tentative)", "status": "Resolved", "owner": "Chat360", "assignedTo": "Varun & Sid N. - null response\nRajeev - UI", "update": "- All 64 failed scenarios shared by Vikaas are working fine and shared the sheet with remarks and status with Vikaas & Sandeepan. - Sandeepan confirmed mutual testing meeting at Mumbai office at 3:30pm tomorrow."}, {"project": "Adani Airports_Website Bot", "pm": "Komal", "csm": "Ishu", "issue": "Timelines are delayed due to QA bandwidth", "eta": "ETA - yet to receive", "goLive": "1-3rd July", "status": "Open", "owner": "Chat360", "assignedTo": "Web mockup - Deepak\nWA testing - Yash & Prashant", "update": "Development Completed: 24 Jun Staging Environment: Internal testing in progress Internal QA: In progress (ETA: TBD; additional QA support required from 2–3 testers) Aionos Testing: ETA TBD VAPT: In progress; approval pending from Adani team  Risks / Delays :  3–4 day delay from Chat360 side due to r"}, {"project": "Adani Airports_WhatsApp Bot", "pm": "Komal", "csm": "Ishu", "issue": "Approval / feedback pending from Adani team", "eta": "ETA - yet to receive", "goLive": "25th Jun", "status": "Open", "owner": "Chat360", "assignedTo": "Pawan Saini", "update": "Given to Aionos for Testing : 22 Jun Feedback Received: 25 Jun & 26 Jun (delay observed at feedback stage) Internal QA: Completed internally as per Aionos' required testing sheet format. UAT Sheet Shared: 29 Jun by Prashant, including implemented changes and internal QA results Adani Team Approval/F"}, {"project": "LIC", "pm": "Tunir", "csm": "Nain", "issue": "We were facing issues with the API validation details provided by Kfintech team . We are connecting regularly with Kfintech team to resolve the same", "eta": "ETA - 30th June", "goLive": "2nd July \n(tentative)", "status": "Open", "owner": "Client", "assignedTo": "Omkar", "update": "According to the Doc Omkar have created everything but The SIP API is still giving Errors, highlighted to Kfintech team, waiting for an update. Meanwhile Ambuj has started with testing on the flow. connecting with client tomorrow for mutual flow testing  Client is aware & informed over the email, ab"}, {"project": "Hyundai Mobis", "pm": "Piyush Tiwari", "csm": "Sana Naaz/ Aryaman", "issue": "The bot has been demonstrated to the client.We are currently accommodating and implementing the changes/feedback shared by the client.", "eta": "Exopected go live : 29th June", "goLive": "TBD", "status": "Open", "owner": "Chat360", "assignedTo": "Ritika Sen and Yash Dua", "update": "Client is telling last mintue changes due to which timeline is getting extended"}, {"project": "HOH - All bots data train", "pm": "Tunir", "csm": "Arnab", "issue": "Client has given feedbacks at in person meeting highlighted below\n\n1. overview - needs to be shorter just the 3/ 4 lines - no configs, price to shared \n2. Brochure, price, BHK, connectivity should only be given when the user asks for it\n3. in overview - it should not say 2, 3, 4 BHK twice (currently it is being mentioned twice)\n4. Possession date - if the user requests earlier - suggested answer - it should suggest other projects that were available for earlier possession (check sheet as possession delay needs to be described similarly) - bot should not contradict here - OMR possession date needs confirmation\n5. Images should shared only when the user asks for, amenities and overview and views\n6. Videos - Belicia needs to be added / No Instagram reels to be shared - only Youtube videos\n7. schedule a visit - option should be given wherever necessary \n8. Language - should understand Hindi and respond properly\n9. Prices - Asterix should be there , it should mention that- prices from...\n10. Nudge - 1 we need after 30 mins, 1 should be after 24 hrs \n11. The brochure names need to be changed \n12. Storey - Westgate and Amalfi - needs to added (to be shared by Smriti)\n13. Interlink for individual project bots should be provided if the user is enquiring for a different project on a different project bot (or else we can provide a link for the landing page , give them a brochure for the project they were enquiring on)", "eta": "Delivery Date - 30th June", "goLive": "1st July", "status": "Open", "owner": "Chat360", "assignedTo": "Aryan", "update": "Aryan jain has finished the feedbacks & testing the changes on production. CSM will visit the client in person on wednesday again & make the bots live"}, {"project": "HOH Eli", "pm": "Tunir", "csm": "Arnab", "issue": "The error msg is coming repeatedly in the bot flow", "eta": "ETA - yet to receive", "goLive": "5th June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Siddharth gupta", "update": "Resolved"}, {"project": "Autovista", "pm": "Tunir", "csm": "Swastik", "issue": "Client currently unable to send both WhatsApp and RCS messages from their end.", "eta": "Expected Delivery - 5th June", "goLive": "5th June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Arnab", "update": "Resolved"}, {"project": "ARKA Fincorp", "pm": "Piyush", "csm": "Arnab", "issue": "voice bot and SFTP devlopent underprocess", "eta": "30th June", "goLive": "30th June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Voice Team", "update": "Marathi and Tamil bots have been developed testing for tamil bot is on going. SFTP development has also WIP."}, {"project": "Baskin Robbins", "pm": "Komal", "csm": "Ritika", "issue": "Bot was stuck at pincode journey for store locator", "eta": "27th May", "goLive": "3rd June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Deepak", "update": "Resolved"}, {"project": "Wealthstreet Financial", "pm": "Tunir", "csm": "Ritika", "issue": "The Bot is not moving forward after asking for the OTP", "eta": "Expected Delivery - Today", "goLive": "22nd May", "status": "Resolved", "owner": "Chat360", "assignedTo": "Sanket & Prathamesh", "update": "Resolved"}, {"project": "Tata Power", "pm": "Komal", "csm": "Divyani", "issue": "Facing latency issues requiring architectural changes.", "eta": "Expected delivery: Today.", "goLive": "15th May", "status": "Resolved", "owner": "Chat360", "assignedTo": "", "update": "Issues are resolved. Informed the client, they will share feedbacks by eod."}, {"project": "Platform Level Issues(Agentic Overall)", "pm": "-", "csm": "-", "issue": "Agentic Bots were impacted due to platform-level issues. A hotfix deployed on Thursday night caused Agentic API failures, response delays, and session timeouts.", "eta": "Hotfix deployed Thursday night; revoked on Friday night. \nMonitoring ongoing by Product Team", "goLive": "-", "status": "Resolved", "owner": "Chat360", "assignedTo": "-", "update": "This is stabalized by Product Team"}, {"project": "Club Mahindra (FIT & Main Bot)", "pm": "Komal", "csm": "Nikhil Bhagat", "issue": "Both CM FIT Bot and Main Bot (yet to go-live) were impacted due to platform-level issues and hallucinations. Satyam was looped in and the client-side situation was managed.", "eta": "", "goLive": "TBD", "status": "Resolved", "owner": "Chat360", "assignedTo": "-", "update": "Bot is working fine now."}, {"project": "Adani Airports - Bot Looping Issue", "pm": "Komal", "csm": "Ishu", "issue": "Bot looping issue was raised during Friday’s audit call for 6th May recordings. RCA identified internal save mechanism failure. \nFix was deployed day before yesterday at 1 AM with prompt updates tested.", "eta": "Fix deployed day before yesterday at 1 AM; further investigation ongoing.", "goLive": "Post go-live changes.", "status": "Resolved", "owner": "Chat360", "assignedTo": "", "update": "- Bot latency and interruption is reduced. Looping is resolved.  - Internal UAT on client's feedback is will be starting by 1pm.  - Client testing on Chat360's platform was started yesterday and feedbacks are being worked upon.  - Post Internal UAT, client testing will be done on client's UAT platfo"}, {"project": "Adani Airports - Analytics", "pm": "Komal", "csm": "Ishu", "issue": "Backfilling activity is in progress. Team has completed 1–2 days of data for interim showcase. Multiple validations and fixes are ongoing.", "eta": "Backfilling and validations currently in progress.\nLive : P0- 27th Apr,  P1 - 2nd May,  P2- 5th May(live on 7th)", "goLive": "rescheduled - 4th June\n(P3- 11th May, Delayed to 25th May and now 27th May)", "status": "Open", "owner": "Chat360", "assignedTo": "Sai & Aditya Bandgar", "update": "P3 & WA CSAT is live."}, {"project": "JP Infra", "pm": "Tunir", "csm": "Nehha", "issue": "For Non API flows too client want the task to be created on SFDC", "eta": "Delivery Date - 25th May\n\nDelayed to - 29th May", "goLive": "2nd June", "status": "Resolved", "owner": "Chat360", "assignedTo": "Musharraf", "update": "Resolved"}, {"project": "Hyundai Motors", "pm": "Piyush", "csm": "Sana Naaz/Aryaman", "issue": "Bot is under client UAT", "eta": "", "goLive": "30th May", "status": "Open", "owner": "Chat360", "assignedTo": "", "update": "Web bot is complete , On whatsapp bot Rohit is working"}];
-let TRACKER = SNAPSHOT_TRACKER, TECH = SNAPSHOT_TECH;
+/* ================= constants ================= */
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const PHASE_COLOR={"Live":"--s-live","Post go-live changes":"--s-ready","Go-live readiness":"--s-ready","Client Testing":"--s-test","Internal Testing":"--s-test","Integration":"--s-integrate","Bot building":"--s-build","Scope/Flow/ discussion":"--s-scope","Initiation":"--s-scope","On Hold":"--s-hold","Not responding/ Sales":"--s-hold","Churned":"--s-churn"};
+const phaseColor=p=>cssVar(PHASE_COLOR[p]||"--s-neutral");
+const BUILD_STATUS_COLOR={"Done":"--s-live","post go-live updates":"--s-ready","Client UAT":"--s-test","Internal UAT":"--s-test","In progress":"--s-build","Integration":"--s-integrate","On HOLD":"--s-hold","Not started":"--s-neutral"};
+const buildStatusColor=s=>cssVar(BUILD_STATUS_COLOR[s]||"--s-neutral");
+const PRIO_COLOR={P0:"--p0",P1:"--p1",P2:"--p2",P3:"--p3"};
+const STAGES=[{key:"Scope",label:"Scope & flow",phases:["Scope/Flow/ discussion","Initiation"],color:"--s-scope"},{key:"Build",label:"Bot building",phases:["Bot building"],color:"--s-build"},{key:"Integrate",label:"Integration",phases:["Integration"],color:"--s-integrate"},{key:"Test",label:"Testing / UAT",phases:["Internal Testing","Client Testing"],color:"--s-test"},{key:"Ready",label:"Go-live ready",phases:["Go-live readiness","Post go-live changes"],color:"--s-ready"},{key:"Live",label:"Live",phases:["Live"],color:"--s-live"}];
+const RISK_PHASES=["On Hold","Not responding/ Sales"], CHURN_PHASES=["Churned"];
+const SECTIONS=[{id:"exec",label:"Executive"},{id:"projects",label:"Projects",count:d=>d.projects.length},{id:"build",label:"Build tasks",count:d=>d.buildTasks.length},{id:"issues",label:"Tech issues",count:d=>d.techIssues.filter(x=>/wip/i.test(x.status||"")).length},{id:"handover",label:"Handover",count:d=>d.salesHandover.length},{id:"team",label:"Team",count:d=>d.buddyPlan.length}];
 
-/* ===== helpers ===== */
-const $ = s => document.querySelector(s);
-const num = v => { const n=parseInt((v||'').toString().replace(/[^\d-]/g,''),10); return isNaN(n)?0:n; };
-const esc = s => (s||'').toString().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-const catKey = c => { c=(c||'').trim(); if(c==='Sliver')return 'Silver'; if(c.indexOf('POC')===0)return 'POC'; return c||'—'; };
-const catShort = c => { const k=catKey(c); return k==='POC'?(String(c).indexOf('Paid')>=0?'POC $':'POC'):k; };
-const stKey = s => (s||'').replace(/\s+/g,'');
-const blank = v => { const t=(v||'').toString().trim(); return !t || t==='—' || t==='-'; };
-const PH = {Delivered:'var(--live)','On Track':'var(--track)',Delayed:'var(--delay)','On Hold':'var(--hold)',Churned:'var(--churn)'};
-const PRIO_C = {Critical:'var(--churn)',High:'var(--delay)',Medium:'var(--track)',Low:'var(--live)'};
-function buildDetail(d){
-  let items=(d._all&&d._all.length)?d._all.slice():
-    [['Project',d.project],['CSM',d.csm],['PM',d.pm],['Bot Builder',d.bb],['Category',d.category],
-     ['City',d.city],['PO',d.po],['Products Live',d.productsLive],['Products Non-Live',d.productsNonLive],
-     ['Ageing',d.ageing],['Tentative Go-Live',d.tentative],['Actual Go-Live',d.actual],['Phase',d.phase],
-     ['Status',d.status],['Days Delayed',d.daysDelayed],['Priority',d.priority],['Root Cause',d.rootCause],
-     ['Latest Update',d.update]].map(x=>({label:x[0],value:x[1]}));
-  const cells=items.filter(x=>x.value&&x.value.toString().trim())
-    .map(x=>`<div class="dcell"><span class="dl">${esc(x.label)}</span><span class="dv">${esc(x.value)}</span></div>`).join('');
-  return cells||`<div class="dcell"><span class="dv">No additional detail.</span></div>`;
+let DATA={projects:[],buildTasks:[],techIssues:[],salesHandover:[],buddyPlan:[]};
+let section="exec", charts={}, stageFilter=null, activeStage=null, refreshTimer=null;
+const today=new Date(); today.setHours(0,0,0,0);
+
+/* ================= boot ================= */
+(function init(){
+  const q=new URLSearchParams(location.search); if(q.get("api")) API_URL=q.get("api");
+  buildNav();
+  document.getElementById("refreshBtn").addEventListener("click",()=>load(true));
+  document.getElementById("apiSave").addEventListener("click",()=>{const v=document.getElementById("apiInput").value.trim(); if(v){API_URL=v; show("setup",false); load(true);}});
+  bindProjects(); bindBuild(); bindIssues(); bindHandover();
+  if(!API_URL){ show("setup",true); setSync("No source",true); return; }
+  load(true); refreshTimer=setInterval(()=>load(false),3*60*1000);
+})();
+
+function buildNav(){
+  const nav=document.getElementById("nav");
+  nav.innerHTML=SECTIONS.map(s=>`<button data-s="${s.id}" class="${s.id===section?'on':''}">${s.label}<span class="pill" data-pill="${s.id}"></span></button>`).join("");
+  nav.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>setSection(b.dataset.s)));
 }
-function tglDetail(tr){const nx=tr.nextElementSibling;if(nx&&nx.classList.contains('detailrow')){nx.hidden=!nx.hidden;tr.classList.toggle('open');}}
-
-function count(arr,key,order,split){
-  const m={};
-  arr.forEach(d=>{ let v=(d[key]||'').toString().trim();
-    if(blank(v)) return;
-    if(split){ v.split(/[\/,&]|and/).map(s=>s.trim()).filter(s=>s&&s!=='-').forEach(p=>m[p]=(m[p]||0)+1); }
-    else m[v]=(m[v]||0)+1; });
-  let ent=Object.entries(m);
-  if(order) ent.sort((a,b)=>order.indexOf(a[0])-order.indexOf(b[0]));
-  else ent.sort((a,b)=>b[1]-a[1]);
-  return ent;
+function updateNavPills(){ SECTIONS.forEach(s=>{const el=document.querySelector(`[data-pill="${s.id}"]`); if(el){ if(s.count){el.textContent=s.count(DATA);} else el.remove(); }}); }
+function setSection(id){
+  section=id;
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.s===id));
+  SECTIONS.forEach(s=>show("v-"+s.id, s.id===id && hasData()));
 }
-function bars(sel,entries,colorFn){
-  const max=Math.max(1,...entries.map(e=>e[1]));
-  $(sel).innerHTML = entries.length ? entries.map(e=>`
-    <div class="brow"><span class="bl" title="${esc(e[0])}">${esc(e[0])}</span>
-      <span class="bt"><span class="bf" style="width:${e[1]/max*100}%;background:${colorFn(e[0])}"></span></span>
-      <span class="bn">${e[1]}</span></div>`).join('') : '';
-  return entries.length;
-}
+function hasData(){ return DATA.projects.length||DATA.buildTasks.length; }
+function show(id,on){ const el=document.getElementById(id); if(el) el.classList.toggle("hidden",!on); }
+function setSync(t,stale){ document.getElementById("syncText").textContent=t; document.getElementById("syncDot").classList.toggle("stale",!!stale); }
 
-/* ===== OVERVIEW ===== */
-let ovScope='All';
-function renderScopeBar(){
-  const tiers=['All','Platinum','Gold','Silver','Bronze','POC'];
-  const cnt=t=>t==='All'?TRACKER.length:TRACKER.filter(d=>catKey(d.category)===t).length;
-  $('#scopeBar').innerHTML=tiers.map(t=>`<span class="scopeseg${t===ovScope?' on':''}" data-t="${t}">${t} <b>${cnt(t)}</b></span>`).join('');
-}
-function renderOverview(){
-  renderScopeBar();
-  const L = ovScope==='All'?'All tiers':ovScope;
-  $('#drTitle').textContent=(ovScope==='All'?'Overall':L)+' delay rate';
-  $('#csmTitle').textContent='Delayed '+(ovScope==='All'?'projects':L)+' by CSM';
-  $('#bbTitle').textContent='Delayed '+(ovScope==='All'?'projects':L)+' by bot builder';
-  $('#detTitle').textContent='Delayed & on-hold'+(ovScope==='All'?' projects':' '+L);
-  const plat = TRACKER.filter(d=> ovScope==='All' ? true : catKey(d.category)===ovScope);
-  const by = st => plat.filter(d=>d.status===st).length;
-  [['total',(ovScope==='All'?'Total projects':L+' total'),plat.length,''],
-   ['deliv','Delivered',by('Delivered'),plat.length],
-   ['delay','Delayed',by('Delayed'),plat.length],
-   ['track','On track',by('On Track'),plat.length],
-   ['hold','On hold',by('On Hold'),plat.length],
-   ['churn','Churned',by('Churned'),plat.length]]
-   .map(k=>`<div class="kpi ${k[0]}"><div class="n">${k[2]}</div><div class="l">${k[1]}</div>${k[3]?`<div class="pct">${Math.round(k[2]/k[3]*100)}%</div>`:''}</div>`)
-   .forEach((h,i,a)=>{ if(i===0) $('#kpis').innerHTML=a.join(''); });
-
-  const rate = plat.length? Math.round(by('Delayed')/plat.length*100):0;
-  $('#drVal').textContent = rate+'%';
-  $('#donut').style.background = `conic-gradient(var(--delay) 0 ${rate}%, var(--surface-3) ${rate}% 100%)`;
-  $('#drLeg').innerHTML =
-    `<div class="row"><span class="sw" style="background:var(--delay)"></span>Delayed — ${by('Delayed')} of ${plat.length}</div>
-     <div class="row"><span class="sw" style="background:var(--surface-3)"></span>Delivered / on track / other — ${plat.length-by('Delayed')}</div>
-     <div class="foot">Delayed ÷ ${ovScope==='All'?'total projects':L+' total'}</div>`;
-
-  const delayed = plat.filter(d=>d.status==='Delayed');
-  const holdset = plat.filter(d=>d.status==='Delayed'||d.status==='On Hold');
-
-  // adaptive card 2: priority if present, else phase
-  const prio = count(delayed,'priority',['Critical','High','Medium','Low']);
-  if(prio.length){ $('#c2title').textContent='Delayed by priority';
-    bars('#c2body',prio,k=>PRIO_C[k]||'var(--muted)'); }
-  else { $('#c2title').textContent='Delayed by phase';
-    if(!bars('#c2body',count(delayed,'phase'),()=>'var(--delay)'))
-      $('#c2body').innerHTML=`<div class="noteempty">No delayed projects in scope.</div>`; }
-
-  // adaptive card 3: root cause if present, else time-overdue buckets
-  const root = count(holdset,'rootCause');
-  if(root.length){ $('#c3title').textContent='Delayed / on-hold by root cause';
-    bars('#c3body',root,()=>'var(--plat)'); }
-  else { $('#c3title').textContent='Delayed by time overdue';
-    const b={'1–30 days':0,'31–60 days':0,'61–90 days':0,'90+ days':0};
-    delayed.forEach(d=>{const n=num(d.daysDelayed); if(n>90)b['90+ days']++;else if(n>60)b['61–90 days']++;else if(n>30)b['31–60 days']++;else if(n>0)b['1–30 days']++;});
-    const ent=Object.entries(b).filter(e=>e[1]>0);
-    if(!bars('#c3body',ent,k=>k==='90+ days'?'var(--churn)':'var(--delay)'))
-      $('#c3body').innerHTML=`<div class="noteempty">No overdue projects in scope.</div>`;
-  }
-
-  if(!bars('#csmBody',count(delayed,'csm'),()=>'var(--churn)')) $('#csmBody').innerHTML=`<div class="noteempty">None.</div>`;
-  if(!bars('#bbBody',count(delayed,'bb',null,true),()=>'var(--hold)')) $('#bbBody').innerHTML=`<div class="noteempty">None.</div>`;
-
-  const det = holdset.slice().sort((a,b)=>num(b.daysDelayed)-num(a.daysDelayed));
-  $('#detCnt').textContent = det.length+' clients';
-  $('#detBody').innerHTML = det.map(d=>`
-    <tr onclick="this.querySelector('.upd').classList.toggle('clip')">
-      <td class="pjt">${esc(d.project)}</td>
-      <td class="sub-mono">${esc(d.csm)}</td><td class="sub-mono">${esc(d.pm)}</td><td class="sub-mono">${esc(d.bb)||'—'}</td>
-      <td class="dd" style="color:${num(d.daysDelayed)>90?'var(--churn)':'var(--delay)'}">${num(d.daysDelayed)}</td>
-      <td>${blank(d.priority)?'<span class="sub-mono">—</span>':`<span class="chip pr-${d.priority}">${esc(d.priority)}</span>`}</td>
-      <td class="sub-mono">${esc(d.rootCause)||'—'}</td>
-      <td class="upd clip">${esc(d.update)}</td>
-    </tr>`).join('') || `<tr><td colspan="8" class="empty">No delayed or on-hold projects in scope.</td></tr>`;
-
-  const open=TECH.filter(t=>t.status==='Open').length, res=TECH.filter(t=>t.status==='Resolved').length;
-  const c360=TECH.filter(t=>t.owner==='Chat360').length, cli=TECH.filter(t=>t.owner==='Client').length;
-  $('#techMini').innerHTML=[['Total',TECH.length,'var(--text)'],['Open',open,'var(--delay)'],['Resolved',res,'var(--live)'],['At Chat360',c360,'var(--brand)'],['At Client',cli,'var(--churn)']]
-    .map(m=>`<div class="mini"><div class="n" style="color:${m[2]}">${m[1]}</div><div class="l">${m[0]}</div></div>`).join('');
-}
-
-/* ===== TRACKER ===== */
-let trkCat='All',trkStatus='All',trkQ='';
-function buildTrackerFilters(){
-  $('#trkCat').innerHTML=['All','Platinum','Gold','Silver','Bronze','POC'].map(c=>`<span class="seg${c==='All'?' on':''}" data-c="${c}">${c}</span>`).join('');
-  $('#trkStatus').innerHTML=['All','Delivered','On Track','Delayed','On Hold','Churned'].map(s=>`<span class="seg${s==='All'?' on':''}" data-s="${s}">${s}</span>`).join('');
-  $('#trkCat').onclick=e=>{const t=e.target.closest('[data-c]');if(!t)return;trkCat=t.dataset.c;$('#trkCat').querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',x===t));renderTracker();};
-  $('#trkStatus').onclick=e=>{const t=e.target.closest('[data-s]');if(!t)return;trkStatus=t.dataset.s;$('#trkStatus').querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',x===t));renderTracker();};
-  $('#trkSearch').oninput=e=>{trkQ=e.target.value.toLowerCase().trim();renderTracker();};
-}
-function renderTracker(){
-  let rows=TRACKER.filter(d=>{
-    if(trkCat!=='All'&&catKey(d.category)!==trkCat)return false;
-    if(trkStatus!=='All'&&d.status!==trkStatus)return false;
-    if(trkQ){const h=(d.project+d.csm+d.pm+d.bb+d.category+d.phase).toLowerCase();if(!h.includes(trkQ))return false;}
-    return true;
-  });
-  const so={Delayed:0,'On Hold':1,'On Track':2,Delivered:3,Churned:4};
-  rows.sort((a,b)=>{const pa=catKey(a.category)==='Platinum',pb=catKey(b.category)==='Platinum';if(pa!==pb)return pa?-1:1;
-    const sa=so[a.status]??9,sb=so[b.status]??9;if(sa!==sb)return sa-sb;return num(b.daysDelayed)-num(a.daysDelayed);});
-  $('#trkBody').innerHTML=rows.length?rows.map(d=>{const k=catKey(d.category);const pc=PH[d.status]||'var(--faint)';
-    return `<tr class="${k==='Platinum'?'plat':''}" onclick="tglDetail(this)" title="Click for full sheet detail">
-      <td class="pjt">${esc(d.project)}<span class="exp">›</span></td>
-      <td><span class="chip cat-${k}">${catShort(d.category).toUpperCase()}</span></td>
-      <td class="sub-mono">${esc(d.csm)}</td><td class="sub-mono">${esc(d.pm)}</td><td class="sub-mono">${esc(d.bb)||'—'}</td>
-      <td class="sub-mono">${esc(d.phase)}</td>
-      <td><span class="stbadge" style="color:${pc}"><span class="sd" style="background:${pc}"></span>${esc(d.status)}</span></td>
-      <td class="dd" style="color:${num(d.daysDelayed)>90?'var(--churn)':num(d.daysDelayed)>0?'var(--delay)':'var(--faint)'}">${num(d.daysDelayed)||'—'}</td>
-      <td>${blank(d.priority)?'<span class="sub-mono">—</span>':`<span class="chip pr-${d.priority}">${esc(d.priority)}</span>`}</td>
-      <td class="sub-mono">${esc(d.rootCause)||'—'}</td>
-      <td class="upd clip">${esc(d.update)}</td></tr>
-      <tr class="detailrow" hidden><td colspan="11"><div class="detailwrap">${buildDetail(d)}</div></td></tr>`;}).join('')
-    :`<tr><td colspan="11" class="empty">No projects match these filters.</td></tr>`;
-}
-
-/* ===== TECH ===== */
-let techStatus='All',techOwner='All',techQ='';
-function buildTechFilters(){
-  $('#techStatusF').innerHTML=['All','Open','Resolved'].map(s=>`<span class="seg${s==='All'?' on':''}" data-s="${s}">${s}</span>`).join('');
-  $('#techOwnerF').innerHTML=['All','Chat360','Client'].map(o=>`<span class="seg${o==='All'?' on':''}" data-o="${o}">${o}</span>`).join('');
-  $('#techStatusF').onclick=e=>{const t=e.target.closest('[data-s]');if(!t)return;techStatus=t.dataset.s;$('#techStatusF').querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',x===t));renderTech();};
-  $('#techOwnerF').onclick=e=>{const t=e.target.closest('[data-o]');if(!t)return;techOwner=t.dataset.o;$('#techOwnerF').querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',x===t));renderTech();};
-  $('#techSearch').oninput=e=>{techQ=e.target.value.toLowerCase().trim();renderTech();};
-}
-function renderTech(){
-  let rows=TECH.filter(t=>{
-    if(techStatus!=='All'&&t.status!==techStatus)return false;
-    if(techOwner!=='All'&&t.owner!==techOwner)return false;
-    if(techQ){const h=(t.project+t.issue+t.owner+t.assignedTo+t.csm).toLowerCase();if(!h.includes(techQ))return false;}
-    return true;
-  }).sort((a,b)=>(a.status==='Open'?0:1)-(b.status==='Open'?0:1));
-  $('#techBody').innerHTML=rows.length?rows.map(t=>`
-    <div class="tcard ${t.status==='Resolved'?'resolved':''}">
-      <div class="th"><div><div class="tp">${esc(t.project)}</div>
-        <div class="tags"><span class="tag ${t.status==='Open'?'open':'res'}">${esc(t.status).toUpperCase()}</span>
-          <span class="tag ${t.owner==='Client'?'client':'c360'}">${esc(t.owner)||'—'}</span></div></div>
-        <div class="mono" style="text-align:right;font-size:10.5px;color:var(--faint)">${esc(t.goLive)||''}</div></div>
-      <div class="issue">${esc(t.issue)}</div>
-      <div class="meta">CSM ${esc(t.csm)||'—'} · PM ${esc(t.pm)||'—'} · ETA ${esc(t.eta)||'—'}</div>
-      <div class="latest"><b>Assigned:</b> ${esc(t.assignedTo)||'—'}<br><b>Latest:</b> ${esc(t.update)||'—'}</div>
-    </div>`).join('') : `<div class="empty" style="grid-column:1/-1">No issues match these filters.</div>`;
-}
-
-/* ===== SMART SHEET TABS (auto-analysed executive views) ===== */
-let SHEETS={};
-const numOf=v=>{const c=(v||'').toString().replace(/[,₹$%\s]/g,'');const x=parseFloat(c);return isNaN(x)?0:x;};
-const fmtNum=x=>{x=Math.round(x*100)/100;return x.toLocaleString('en-IN');};
-const shortName=s=>{s=(s||'').toString();return s.length>24?s.slice(0,22)+'…':s;};
-const isDateLike=v=>/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(v)||/\d{1,2}\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(v);
-function barHTML(entries,color){
-  if(!entries.length)return '<div class="noteempty">No data.</div>';
-  const max=Math.max(1,...entries.map(e=>e[1]));
-  return entries.map(e=>`<div class="brow"><span class="bl" title="${esc(e[0])}">${esc(e[0])}</span><span class="bt"><span class="bf" style="width:${e[1]/max*100}%;background:${color}"></span></span><span class="bn">${fmtNum(e[1])}</span></div>`).join('');
-}
-function groupCount(rows,ci){const m={};rows.forEach(r=>{const k=(r[ci]||'').toString().trim();if(!k)return;m[k]=(m[k]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);}
-function groupSum(rows,ci,mi){const m={};rows.forEach(r=>{const k=(r[ci]||'').toString().trim();if(!k)return;m[k]=(m[k]||0)+numOf(r[mi]);});return Object.entries(m).sort((a,b)=>b[1]-a[1]);}
-function profileSheet(cols,rows){
-  return cols.map((name,ci)=>{
-    const vals=rows.map(r=>(r[ci]||'').toString().trim()).filter(v=>v!=='');
-    const ne=vals.length; let numC=0,dateC=0,pctC=0;
-    vals.forEach(v=>{const c=v.replace(/[,₹$%\s]/g,'');if(c!==''&&!isNaN(Number(c))){numC++;if(v.indexOf('%')>=0)pctC++;}if(isDateLike(v))dateC++;});
-    const distinct=new Set(vals.map(v=>v.toLowerCase())).size;
-    const isId=/(^|\b)(sr|s\.?\s?no|serial|id|rank|index|#)\b/i.test(name);
-    const numeric=ne>0&&numC/ne>=0.7&&dateC/Math.max(1,ne)<0.5&&!isId;
-    const date=!numeric&&ne>0&&dateC/ne>=0.6;
-    const personish=/\b(csm|pm|owner|bot\s*builder|builder|bb|name|agent|assign|manager|lead|rep|poc|dev)\b/i.test(name)&&!numeric&&!date;
-    const categorical=!numeric&&!date&&distinct>1&&distinct<=15&&(distinct/Math.max(1,ne))<0.7;
-    return{name,ci,ne,distinct,numeric,date,personish,categorical,isPercent:numeric&&pctC>numC*0.5};
-  });
-}
-function renderSheets(){
-  document.querySelectorAll('.tab.dyn').forEach(x=>x.remove());
-  const dv=$('#dynViews'); dv.innerHTML='';
-  Object.keys(SHEETS).forEach((name,i)=>{
-    const id='sheet-'+i, sh=SHEETS[name];
-    const tab=document.createElement('div');
-    tab.className='tab dyn'; tab.dataset.view=id;
-    tab.innerHTML=`${esc(name)} <span class="cnt">${sh.rows.length}</span>`;
-    document.querySelector('.nav').appendChild(tab);
-    const sec=document.createElement('section');
-    sec.className='view'; sec.id='v-'+id;
-    sec.innerHTML=smartSection(name,sh,i);
-    dv.appendChild(sec);
-    renderSheetRows(i,'');
-  });
-}
-function smartSection(name,sh,i){
-  const cols=sh.columns, rows=sh.rows, n=rows.length;
-  const prof=profileSheet(cols,rows);
-  const measures=prof.filter(p=>p.numeric);
-  const persons=prof.filter(p=>p.personish);
-  const dims=prof.filter(p=>p.categorical||p.personish);
-
-  // KPI strip
-  let kpis=[['Rows',fmtNum(n)]];
-  measures.slice(0,3).forEach(m=>{
-    if(m.isPercent){const vals=rows.map(r=>r[m.ci]).filter(v=>(v||'').toString().trim());const a=vals.length?vals.reduce((s,v)=>s+numOf(v),0)/vals.length:0;kpis.push(['Avg '+shortName(m.name),a.toFixed(1)+'%']);}
-    else kpis.push(['Total '+shortName(m.name),fmtNum(rows.reduce((s,r)=>s+numOf(r[m.ci]),0))]);
-  });
-  const primDim=persons[0]||dims[0];
-  if(primDim&&kpis.length<5)kpis.push(['Distinct '+shortName(primDim.name),primDim.distinct]);
-  const kpiHTML=kpis.slice(0,5).map(k=>`<div class="skpi"><div class="skn">${esc(String(k[1]))}</div><div class="skl">${esc(k[0])}</div></div>`).join('');
-
-  // breakdown panels
-  const panels=[]; const used=new Set();
-  if(persons[0]){
-    const p=persons[0]; used.add(p.ci);
-    if(measures[0]){const ent=groupSum(rows,p.ci,measures[0].ci).slice(0,10);panels.push(panelHTML(`${shortName(measures[0].name)} by ${shortName(p.name)}`,barHTML(ent,'var(--brand)')));}
-    else{const ent=groupCount(rows,p.ci).slice(0,10);panels.push(panelHTML(`By ${shortName(p.name)}`,barHTML(ent,'var(--brand)')));}
-  }
-  dims.filter(d=>!used.has(d.ci)).slice(0,3-panels.length+1).slice(0,2).forEach(d=>{
-    used.add(d.ci);const ent=groupCount(rows,d.ci).slice(0,10);
-    panels.push(panelHTML(`By ${shortName(d.name)}`,barHTML(ent,'var(--plat)')));
-  });
-  const panelsHTML=panels.length?`<div class="sgrid">${panels.join('')}</div>`:'';
-
-  const tableHTML=`<details class="rawwrap"><summary>Full table · ${n} rows × ${cols.length} columns</summary>
-    <div class="controls" style="margin-top:12px"><input class="search" placeholder="Search ${esc(name)}…" data-sheet="${i}"></div>
-    <div class="tablecard"><div class="tscroll"><table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody id="sb-${i}"></tbody></table></div></div></details>`;
-
-  return `<div class="sheetnote">Live from “${esc(name)}” · auto-summarised for leadership</div>
-    <div class="skpis">${kpiHTML}</div>${panelsHTML}${tableHTML}`;
-}
-function panelHTML(title,body){return `<div class="card"><div class="hd"><span class="dot"></span><h2>${esc(title)}</h2></div><div class="bd">${body}</div></div>`;}
-function renderSheetRows(i,q){
-  const name=Object.keys(SHEETS)[i], sh=SHEETS[name];
-  const rows=q?sh.rows.filter(r=>r.join(' ').toLowerCase().includes(q)):sh.rows;
-  const b=$('#sb-'+i); if(!b)return;
-  b.innerHTML=rows.length?rows.map(r=>`<tr>${sh.columns.map((c,ci)=>`<td class="sheetcell">${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('')
-    :`<tr><td class="empty" colspan="${sh.columns.length}">No matches.</td></tr>`;
-}
-$('#dynViews').addEventListener('input',e=>{const t=e.target.closest('[data-sheet]');if(!t)return;renderSheetRows(+t.dataset.sheet,e.target.value.toLowerCase().trim());});
-
-/* ===== nav + load ===== */
-document.querySelector('.nav').onclick=e=>{const t=e.target.closest('.tab');if(!t)return;
-  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));$('#v-'+t.dataset.view).classList.add('on');};
-
-function renderAll(){$('#tcnt').textContent=TRACKER.length;$('#ecnt').textContent=TECH.length;renderOverview();renderTracker();renderTech();renderSheets();}
-function setLive(s,m){const c=$('#livechip');c.className='livechip'+(s==='live'?' on':s==='err'?' err':'');$('#livetext').textContent=m;}
-function parseCSV(text){const rows=[];let f='',row=[],q=false;for(let i=0;i<text.length;i++){const c=text[i];
-  if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
-  else if(c==='"')q=true;else if(c===','){row.push(f);f='';}else if(c==='\n'){row.push(f);rows.push(row);row=[];f='';}else if(c!=='\r')f+=c;}
-  if(f.length||row.length){row.push(f);rows.push(row);}return rows;}
-function mapRows(rows,map){if(!rows.length)return[];const hdr=rows[0].map(h=>(h||'').trim());const idx={};hdr.forEach((h,i)=>{if(map[h])idx[map[h]]=i;});
-  const out=[];for(let r=1;r<rows.length;r++){const row=rows[r],pi=idx['project'];if(pi==null||!row[pi]||!row[pi].trim())continue;
-    const o={};Object.values(map).forEach(k=>{o[k]=idx[k]!=null?(row[idx[k]]||'').trim():'';});out.push(o);}return out;}
-async function fetchCSV(id,tab){const url=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
-  const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);return parseCSV(await r.text());}
-async function loadLive(){
-  if(!LIVE.enabled){setLive('snap','Snapshot');return;}
-  setLive('','Loading…');
+/* ================= load ================= */
+async function load(skeleton){
+  if(!API_URL) return;
+  const rb=document.getElementById("refreshBtn"); rb.classList.add("spin");
+  if(skeleton&&!hasData()){ show("loading",true); SECTIONS.forEach(s=>show("v-"+s.id,false)); }
+  document.getElementById("banner").innerHTML="";
   try{
-    if(LIVE.mode==='api'){const j=await(await fetch(LIVE.apiUrl,{cache:'no-store'})).json();
-      if(Array.isArray(j.tracker)&&j.tracker.length)TRACKER=j.tracker;if(Array.isArray(j.tech))TECH=j.tech;if(j.sheets&&typeof j.sheets==='object')SHEETS=j.sheets;}
-    else{const [tr,tc]=await Promise.all([fetchCSV(LIVE.sheetId,LIVE.trackerTab),fetchCSV(LIVE.sheetId,LIVE.techTab)]);
-      const t=mapRows(tr,TRACKER_MAP),e=mapRows(tc,TECH_MAP);if(t.length)TRACKER=t;if(e.length)TECH=e;}
-    renderAll();setLive('live','Live');
-    const now=new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
-    $('#syncTime').innerHTML='Synced <b>'+now+'</b>';$('#asof').textContent='live · '+now;
-  }catch(err){setLive('err','Live unavailable — snapshot');console.warn('live load failed:',err);$('#syncTime').textContent='snapshot';}
+    const d=await fetchData(API_URL);
+    if(!d||!d.ok) throw new Error(d&&d.error?d.error:"Bad response");
+    DATA={projects:d.projects||[],buildTasks:d.buildTasks||[],techIssues:d.techIssues||[],salesHandover:d.salesHandover||[],buddyPlan:d.buddyPlan||[]};
+    show("loading",false); show("setup",false);
+    renderAll(); updateNavPills(); setSection(section);
+    const t=new Date(d.generatedAt||Date.now());
+    setSync("Synced "+t.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"}),false);
+  }catch(err){
+    show("loading",false); setSync("Sync failed",true);
+    document.getElementById("banner").innerHTML=`<div class="banner">⚠ Couldn't load live data — ${esc(String(err.message||err))}.</div>`;
+    if(!hasData()&&!API_URL) show("setup",true);
+  }finally{ setTimeout(()=>rb.classList.remove("spin"),400); }
 }
-$('#refresh').onclick=loadLive;
-$('#scopeBar').onclick=e=>{const t=e.target.closest('[data-t]');if(!t)return;ovScope=t.dataset.t;renderOverview();};
-buildTrackerFilters();buildTechFilters();renderAll();loadLive();
-if(LIVE.enabled&&LIVE.refreshMs>0)setInterval(loadLive,LIVE.refreshMs);
+function fetchData(url){ return fetch(url,{cache:"no-store"}).then(r=>r.json()).catch(()=>jsonp(url)); }
+function jsonp(url){return new Promise((res,rej)=>{const cb="cb_"+Math.random().toString(36).slice(2);const s=document.createElement("script");const sep=url.includes("?")?"&":"?";window[cb]=d=>{res(d);delete window[cb];s.remove();};s.onerror=()=>{rej(new Error("network"));s.remove();};s.src=url+sep+"callback="+cb;document.body.appendChild(s);setTimeout(()=>{if(window[cb]){rej(new Error("timeout"));delete window[cb];s.remove();}},15000);});}
+
+/* ================= shared helpers ================= */
+const isLive=p=>p.phase==="Live", isChurn=p=>CHURN_PHASES.includes(p.phase);
+const isActive=p=>!isChurn(p);
+const inDelivery=p=>["Bot building","Integration","Internal Testing","Client Testing","Go-live readiness","Post go-live changes"].includes(p.phase);
+function isOverdue(p){ if(isLive(p)||isChurn(p)||!p.tentativeGoLive) return false; return new Date(p.tentativeGoLive)<today; }
+function atRisk(p){ if(isChurn(p)||isLive(p)) return false; return RISK_PHASES.includes(p.phase)||isOverdue(p)||(typeof p.ageing==="number"&&p.ageing>=90); }
+function fmtDate(iso){ if(!iso) return "—"; return new Date(iso).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}); }
+function monthKey(iso){ const d=new Date(iso); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function esc(s){ if(s==null) return ""; return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+function countBy(arr,fn){const m={};arr.forEach(x=>{const k=fn(x);if(k)m[k]=(m[k]||0)+1;});return m;}
+function weekBounds(offset){ const d=new Date(today); const day=(d.getDay()+6)%7; const mon=new Date(d); mon.setDate(d.getDate()-day+offset*7); const sun=new Date(mon); sun.setDate(mon.getDate()+6); return [mon,sun]; }
+function inRange(iso,a,b){ if(!iso) return false; const x=new Date(iso); return x>=a&&x<=b; }
+
+Chart.defaults.font.family="'Inter',sans-serif"; Chart.defaults.color="#94A6C0";
+Chart.defaults.plugins.legend.labels.boxWidth=10; Chart.defaults.plugins.legend.labels.boxHeight=10; Chart.defaults.plugins.legend.labels.padding=11;
+function destroy(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+/* ================= render orchestration ================= */
+function renderAll(){ renderExec(); renderProjects(); renderBuild(); renderIssues(); renderHandover(); renderTeam(); }
+
+/* ---------- EXECUTIVE ---------- */
+function renderExec(){
+  const P=DATA.projects;
+  // pipeline
+  const el=document.getElementById("pipeline"); el.innerHTML="";
+  STAGES.forEach(s=>{
+    const n=P.filter(p=>s.phases.includes(p.phase)).length, od=P.filter(p=>s.phases.includes(p.phase)&&isOverdue(p)).length;
+    const div=document.createElement("div"); div.className="stage"+(activeStage===s.key?" active":""); div.style.setProperty("--sc",cssVar(s.color));
+    div.innerHTML=`<div class="st-name"><i></i>${s.label}</div><div class="st-num">${n}</div><div class="st-foot">${s.key==="Live"?"shipped":(od?`<span style="color:${cssVar('--s-risk')}">${od} overdue</span>`:"on track")}</div>`;
+    div.onclick=()=>jumpStage(s.key,s.phases); el.appendChild(div);
+  });
+  const hold=P.filter(p=>RISK_PHASES.includes(p.phase)).length, churn=P.filter(isChurn).length;
+  const rl=document.createElement("div"); rl.className="stage risk-lane"+(activeStage==="__risk"?" active":""); rl.style.setProperty("--sc",cssVar("--s-risk"));
+  rl.innerHTML=`<div class="st-name"><i></i>Attention needed</div><div class="risk-split"><div><div class="rn" style="color:${cssVar('--s-hold')}">${hold}</div><div class="rl">On hold / no reply</div></div><div><div class="rn" style="color:${cssVar('--s-churn')}">${churn}</div><div class="rl">Churned</div></div></div>`;
+  rl.onclick=()=>jumpStage("__risk",[...RISK_PHASES,...CHURN_PHASES]); el.appendChild(rl);
+
+  // KPIs (cross-tab)
+  const openIssues=DATA.techIssues.filter(x=>/wip/i.test(x.status||"")).length;
+  const kpis=[
+    {l:"Active projects",v:P.filter(isActive).length,d:`${P.length} incl. churned`,cls:"accent"},
+    {l:"Live",v:P.filter(isLive).length,d:P.length?Math.round(P.filter(isLive).length/P.length*100)+"% of portfolio":"—",cls:"live"},
+    {l:"In delivery",v:P.filter(inDelivery).length,d:"building → readiness",cls:""},
+    {l:"At risk",v:P.filter(atRisk).length,d:`${P.filter(isOverdue).length} past tentative`,cls:"risk"},
+    {l:"Open tech issues",v:openIssues,d:`${DATA.techIssues.length} tracked`,cls:"warn"},
+    {l:"Sales → CSM pipeline",v:DATA.salesHandover.length,d:"incoming handover",cls:""}
+  ];
+  document.getElementById("kpis").innerHTML=kpis.map(c=>`<div class="kpi ${c.cls}"><div class="l">${c.l}</div><div class="v">${c.v}</div><div class="d">${c.d}</div></div>`).join("");
+
+  // go-live radar
+  const [lwA,lwB]=weekBounds(-1),[twA,twB]=weekBounds(0),[nwA,nwB]=weekBounds(1);
+  const names=arr=>arr.length?arr.slice(0,6).map(esc).join(" · ")+(arr.length>6?` +${arr.length-6}`:""):`<span class="none">Nothing scheduled</span>`;
+  const dLast=P.filter(p=>inRange(p.actualGoLive,lwA,lwB)).map(p=>p.project);
+  const dThis=P.filter(p=>inRange(p.actualGoLive,twA,today)).map(p=>p.project);
+  const pThis=P.filter(p=>!isLive(p)&&!isChurn(p)&&inRange(p.tentativeGoLive,twA,twB)).map(p=>p.project);
+  const pNext=P.filter(p=>!isLive(p)&&!isChurn(p)&&inRange(p.tentativeGoLive,nwA,nwB)).map(p=>p.project);
+  const radar=[["deliv","Delivered last week",dLast],["deliv","Delivered this week",dThis],["plan","Planned this week",pThis],["plan","Planned next week",pNext]];
+  document.getElementById("radar").innerHTML=radar.map(([cls,t,arr])=>`<div class="rcard ${cls}"><div class="rt">${t}<b>${arr.length}</b></div><div class="rl">${names(arr)}</div></div>`).join("");
+
+  // charts
+  const phaseCounts=countBy(P,p=>p.phase);
+  const order=["Live","Post go-live changes","Go-live readiness","Client Testing","Internal Testing","Integration","Bot building","Scope/Flow/ discussion","Initiation","On Hold","Not responding/ Sales","Churned"].filter(p=>phaseCounts[p]);
+  document.getElementById("phaseMeta").textContent=order.length+" phases";
+  donut("phaseChart",order,order.map(p=>phaseCounts[p]),order.map(phaseColor));
+  const tierCounts=countBy(P,p=>p.category), tierOrder=["Platinum","Gold","Silver","Bronze","POC Paid","POC Free","Unspecified"].filter(t=>tierCounts[t]);
+  const tierCol={Platinum:"#B9C6DD",Gold:"#F5C451",Silver:"#9FB0C6",Bronze:"#D69A6A","POC Paid":"#38BDF8","POC Free":"#5C6F8C",Unspecified:"#3a4457"};
+  bar("tierChart",tierOrder,tierOrder.map(t=>tierCounts[t]),tierOrder.map(t=>tierCol[t]||"#5C6F8C"));
+  const pmCounts=countBy(P.filter(isActive),p=>p.pm), pmL=Object.keys(pmCounts).sort((a,b)=>pmCounts[b]-pmCounts[a]);
+  donut("pmChart",pmL,pmL.map(p=>pmCounts[p]),["#2FE3C4","#7C93F0","#F5C451","#38BDF8","#8E7BF0","#FB923C"]);
+  const csm=countBy(P.filter(isActive),p=>p.csm), csmL=Object.keys(csm).sort((a,b)=>csm[b]-csm[a]);
+  hbar("csmChart",csmL,csmL.map(c=>csm[c]),cssVar("--brand"));
+  const go=countBy(P.filter(p=>p.actualGoLive),p=>monthKey(p.actualGoLive)), months=Object.keys(go).sort().slice(-12);
+  bar("golivesChart",months.map(m=>{const[y,mo]=m.split("-");return new Date(y,mo-1).toLocaleDateString("en-GB",{month:"short",year:"2-digit"});}),months.map(m=>go[m]),cssVar("--s-live"));
+}
+function jumpStage(key,phases){ activeStage=activeStage===key?null:key; stageFilter=activeStage?phases:null; renderExec(); if(activeStage){ setSection("projects"); document.getElementById("p-phase").value="__all"; renderProjects(); } else renderProjects(); }
+
+/* chart factories */
+function donut(id,labels,data,colors){ destroy(id); charts[id]=new Chart(document.getElementById(id),{type:"doughnut",data:{labels,datasets:[{data,backgroundColor:colors,borderColor:cssVar("--panel"),borderWidth:2}]},options:{cutout:"60%",plugins:{legend:{position:"right",labels:{font:{size:11}}}},responsive:true,maintainAspectRatio:false}}); }
+function bar(id,labels,data,color){ destroy(id); charts[id]=new Chart(document.getElementById(id),{type:"bar",data:{labels,datasets:[{data,backgroundColor:color,borderRadius:6,maxBarThickness:34}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{grid:{color:cssVar("--line-soft")},ticks:{precision:0}}},responsive:true,maintainAspectRatio:false}}); }
+function hbar(id,labels,data,color){ destroy(id); charts[id]=new Chart(document.getElementById(id),{type:"bar",data:{labels,datasets:[{data,backgroundColor:color,borderRadius:5,maxBarThickness:15}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{grid:{color:cssVar("--line-soft")},ticks:{precision:0}},y:{grid:{display:false},ticks:{font:{size:11}}}},responsive:true,maintainAspectRatio:false}}); }
+
+/* ---------- generic table utils ---------- */
+function fillSelect(id,vals,label,cur){ const sel=document.getElementById(id); const keep=cur??sel.value; sel.innerHTML=`<option value="__all">All ${label}</option>`+vals.map(v=>`<option>${esc(v)}</option>`).join(""); if(keep&&[...sel.options].some(o=>o.value===keep)) sel.value=keep; }
+function uniq(arr,k){ return [...new Set(arr.map(x=>x[k]).filter(Boolean))].sort(); }
+function badge(text,color){ return `<span class="badge" style="color:${color};background:${color}18"><i></i>${esc(text)}</span>`; }
+function timeline(hist){ return `<div class="tl-scroll">${hist&&hist.length?hist.map(h=>`<div class="tl-item"><div class="d">${esc(h.date)}</div><div class="t">${esc(h.text)}</div></div>`).join(""):'<div class="muted">No activity recorded.</div>'}</div>`; }
+function wireExpand(tbodyId){ document.querySelectorAll(`#${tbodyId} tr.main`).forEach(tr=>tr.addEventListener("click",()=>{tr.classList.toggle("open"); tr.nextElementSibling.classList.toggle("hidden");})); }
+function wireSort(headId,state,rerender){ document.querySelectorAll(`#${headId} th`).forEach(th=>th.addEventListener("click",()=>{const k=th.dataset.k; if(state.key===k) state.dir*=-1; else{state.key=k;state.dir=1;} rerender();})); }
+function sortArrow(headId,state){ document.querySelectorAll(`#${headId} .ar`).forEach(a=>a.textContent=""); const el=document.querySelector(`#${headId} [data-ar="${state.key}"]`); if(el) el.textContent=state.dir>0?"↓":"↑"; }
+
+/* ---------- PROJECTS ---------- */
+const P_COLS=[{k:"project",t:"Project"},{k:"phase",t:"Phase"},{k:"category",t:"Tier",cls:"col-hide"},{k:"csm",t:"CSM",cls:"col-hide"},{k:"pm",t:"PM",cls:"col-hide"},{k:"city",t:"City",cls:"col-hide"},{k:"tentativeGoLive",t:"Tentative"},{k:"actualGoLive",t:"Actual",cls:"col-hide"},{k:"ageing",t:"Ageing"},{k:"latest",t:"Latest update"}];
+const pSort={key:"phase",dir:1};
+const PHASE_RANK={}; ["Scope/Flow/ discussion","Initiation","Bot building","Integration","Internal Testing","Client Testing","Go-live readiness","Post go-live changes","Live","On Hold","Not responding/ Sales","Churned"].forEach((p,i)=>PHASE_RANK[p]=i);
+function bindProjects(){
+  document.getElementById("p-search").addEventListener("input",debounce(renderPTable,180));
+  ["p-phase","p-tier","p-csm","p-pm","p-city"].forEach(id=>document.getElementById(id).addEventListener("change",renderPTable));
+  document.getElementById("p-clear").addEventListener("click",()=>{document.getElementById("p-search").value="";["p-phase","p-tier","p-csm","p-pm","p-city"].forEach(id=>document.getElementById(id).value="__all");stageFilter=null;activeStage=null;renderExec();renderPTable();});
+  document.getElementById("p-head").innerHTML=P_COLS.map(c=>`<th data-k="${c.k}" class="${c.cls||''}">${c.t}<span class="ar" data-ar="${c.k}"></span></th>`).join("");
+  wireSort("p-head",pSort,renderPTable);
+}
+function renderProjects(){ fillSelect("p-phase",uniq(DATA.projects,"phase"),"phases"); fillSelect("p-tier",uniq(DATA.projects,"category"),"tiers"); fillSelect("p-csm",uniq(DATA.projects,"csm"),"CSMs"); fillSelect("p-pm",uniq(DATA.projects,"pm"),"PMs"); fillSelect("p-city",uniq(DATA.projects,"city"),"cities"); renderPTable(); }
+function renderPTable(){
+  const q=document.getElementById("p-search").value.trim().toLowerCase();
+  const f={phase:val("p-phase"),tier:val("p-tier"),csm:val("p-csm"),pm:val("p-pm"),city:val("p-city")};
+  let rows=DATA.projects.filter(p=>{
+    if(stageFilter&&!stageFilter.includes(p.phase)) return false;
+    if(f.phase!=="__all"&&p.phase!==f.phase) return false;
+    if(f.tier!=="__all"&&p.category!==f.tier) return false;
+    if(f.csm!=="__all"&&p.csm!==f.csm) return false;
+    if(f.pm!=="__all"&&p.pm!==f.pm) return false;
+    if(f.city!=="__all"&&p.city!==f.city) return false;
+    if(q){const hay=[p.project,p.csm,p.pm,p.botOwner,p.latestUpdate&&p.latestUpdate.text,p.productsLive].join(" ").toLowerCase(); if(!hay.includes(q)) return false;}
+    return true;
+  });
+  rows=sortRows(rows,pSort,{phase:p=>PHASE_RANK[p.phase]??99,latest:p=>p.latestUpdate?p.latestUpdate.date:"",ageing:p=>p.ageing??-99999});
+  document.getElementById("p-count").textContent=rows.length; sortArrow("p-head",pSort);
+  document.getElementById("p-empty").classList.toggle("hidden",rows.length>0);
+  document.getElementById("p-body").innerHTML=rows.map(pRow).join(""); wireExpand("p-body");
+}
+function ageBadge(p){ if(typeof p.ageing!=="number") return `<span class="muted">—</span>`; const cls=isOverdue(p)?"over":(p.ageing>=90?"warn":""); return `<span class="age ${cls}">${p.ageing}d</span>`; }
+function pRow(p){
+  const lu=p.latestUpdate;
+  return `<tr class="main"><td><div class="pname"><svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>${esc(p.project)}</div></td>
+  <td>${badge(p.phase,phaseColor(p.phase))}</td>
+  <td class="col-hide"><span class="tier ${esc(p.category)}">${esc(p.category||"—")}</span></td>
+  <td class="col-hide">${esc(p.csm||"—")}</td><td class="col-hide muted">${esc(p.pm||"—")}</td><td class="col-hide muted">${esc(p.city||"—")}</td>
+  <td class="mono muted" style="font-size:12px">${fmtDate(p.tentativeGoLive)}</td>
+  <td class="col-hide mono" style="font-size:12px;color:${p.actualGoLive?cssVar('--s-live'):'var(--ink-3)'}">${fmtDate(p.actualGoLive)}</td>
+  <td>${ageBadge(p)}</td>
+  <td class="upd">${lu?`<span class="ud">${esc(lu.date)}</span><span class="ut">${esc(lu.text)}</span>`:'<span class="muted">No updates</span>'}</td></tr>
+  <tr class="detail hidden"><td colspan="${P_COLS.length}"><div class="detail-inner"><div><div class="meta-grid">
+    <div><div class="k">CSM</div><div class="val">${esc(p.csm||"—")}</div></div>
+    <div><div class="k">Bot owner / builder</div><div class="val">${esc(p.botOwner||"—")}</div></div>
+    <div><div class="k">Products live</div><div class="val">${esc(p.productsLive||"—")}</div></div>
+    <div><div class="k">Products not live</div><div class="val">${esc(p.productsNonLive||"—")}</div></div>
+    <div><div class="k">PO status</div><div class="val">${esc(p.po||"—")}</div></div>
+    <div><div class="k">City · Tier</div><div class="val">${esc(p.city||"—")} · ${esc(p.category||"—")}</div></div>
+    <div><div class="k">Tentative go-live</div><div class="val mono">${fmtDate(p.tentativeGoLive)}</div></div>
+    <div><div class="k">Actual go-live</div><div class="val mono">${fmtDate(p.actualGoLive)}</div></div>
+  </div>${p.leadershipComments?`<div class="leader-note"><div class="k">Leadership note · Raniji &amp; Samarth</div><div class="val">${esc(p.leadershipComments)}</div></div>`:""}</div>
+  <div class="timeline"><div class="k">Activity log · ${p.history.length} update${p.history.length!==1?"s":""}</div>${timeline(p.history)}</div></div></td></tr>`;
+}
+
+/* ---------- BUILD TASKS ---------- */
+const B_COLS=[{k:"task",t:"Task"},{k:"priority",t:"Pri"},{k:"status",t:"Status"},{k:"builder",t:"Builder",cls:"col-hide"},{k:"category",t:"Tier",cls:"col-hide"},{k:"ownerDeliveryDate",t:"Delivery",cls:"col-hide"},{k:"goLiveDate",t:"Go-live"},{k:"latest",t:"Latest update"}];
+const bSort={key:"priority",dir:1}; const PRIO_RANK={P0:0,P1:1,P2:2,P3:3};
+const bDone=t=>/^done$/i.test(t.status||"")||/post go-live/i.test(t.status||"");
+function bindBuild(){
+  document.getElementById("b-search").addEventListener("input",debounce(renderBTable,180));
+  ["b-status","b-prio","b-builder"].forEach(id=>document.getElementById(id).addEventListener("change",renderBTable));
+  document.getElementById("b-clear").addEventListener("click",()=>{document.getElementById("b-search").value="";["b-status","b-prio","b-builder"].forEach(id=>document.getElementById(id).value="__all");renderBTable();});
+  document.getElementById("b-head").innerHTML=B_COLS.map(c=>`<th data-k="${c.k}" class="${c.cls||''}">${c.t}<span class="ar" data-ar="${c.k}"></span></th>`).join("");
+  wireSort("b-head",bSort,renderBTable);
+}
+function renderBuild(){
+  const B=DATA.buildTasks, active=B.filter(t=>!bDone(t));
+  const overdue=active.filter(t=>t.ownerDeliveryDate&&new Date(t.ownerDeliveryDate)<today).length;
+  const k=[
+    {l:"Total tasks",v:B.length,d:"logged in BB Efforts",cls:"accent"},
+    {l:"Delivered",v:B.filter(bDone).length,d:"done / post go-live",cls:"live"},
+    {l:"Active",v:active.length,d:"in build / UAT / integ",cls:""},
+    {l:"On hold",v:B.filter(t=>/hold/i.test(t.status||"")).length,d:"blocked",cls:"warn"},
+    {l:"Overdue delivery",v:overdue,d:"past owner ETA",cls:"risk"},
+    {l:"P0 open",v:active.filter(t=>t.priority==="P0").length,d:"highest priority active",cls:"risk"}
+  ];
+  document.getElementById("b-kpis").innerHTML=k.map(c=>`<div class="kpi ${c.cls}"><div class="l">${c.l}</div><div class="v">${c.v}</div><div class="d">${c.d}</div></div>`).join("");
+  // charts
+  const sc=countBy(B,t=>t.status), scOrder=["Done","post go-live updates","Client UAT","Internal UAT","Integration","In progress","On HOLD","Not started"].filter(s=>sc[s]);
+  document.getElementById("b-statusMeta").textContent=B.length+" tasks";
+  donut("bStatusChart",scOrder,scOrder.map(s=>sc[s]),scOrder.map(buildStatusColor));
+  const pc=countBy(B,t=>t.priority), pOrder=["P0","P1","P2","P3"].filter(p=>pc[p]);
+  bar("bPrioChart",pOrder,pOrder.map(p=>pc[p]),pOrder.map(p=>cssVar(PRIO_COLOR[p])));
+  const bw=countBy(active,t=>t.builder), bwL=Object.keys(bw).sort((a,b)=>bw[b]-bw[a]).slice(0,10);
+  hbar("bBuilderChart",bwL,bwL.map(b=>bw[b]),cssVar("--s-build"));
+  // filters + table
+  fillSelect("b-status",uniq(B,"status"),"statuses"); fillSelect("b-prio",uniq(B,"priority"),"priorities"); fillSelect("b-builder",uniq(B,"builder"),"builders");
+  renderBTable();
+}
+function renderBTable(){
+  const q=document.getElementById("b-search").value.trim().toLowerCase();
+  const f={status:val("b-status"),prio:val("b-prio"),builder:val("b-builder")};
+  let rows=DATA.buildTasks.filter(t=>{
+    if(f.status!=="__all"&&t.status!==f.status) return false;
+    if(f.prio!=="__all"&&t.priority!==f.prio) return false;
+    if(f.builder!=="__all"&&t.builder!==f.builder) return false;
+    if(q){const hay=[t.task,t.bot,t.builder,t.csm,t.pm,t.latestUpdate&&t.latestUpdate.text].join(" ").toLowerCase(); if(!hay.includes(q)) return false;}
+    return true;
+  });
+  rows=sortRows(rows,bSort,{priority:t=>PRIO_RANK[t.priority]??9,latest:t=>t.latestUpdate?t.latestUpdate.date:""});
+  document.getElementById("b-count").textContent=rows.length; sortArrow("b-head",bSort);
+  document.getElementById("b-empty").classList.toggle("hidden",rows.length>0);
+  document.getElementById("b-body").innerHTML=rows.map(bRow).join(""); wireExpand("b-body");
+}
+function prioBadge(p){ if(!p) return '<span class="muted">—</span>'; return `<span class="prio" style="color:${cssVar(PRIO_COLOR[p]||'--s-neutral')};background:${cssVar(PRIO_COLOR[p]||'--s-neutral')}18">${esc(p)}</span>`; }
+function bRow(t){
+  const lu=t.latestUpdate;
+  return `<tr class="main"><td><div class="pname"><svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>${esc(t.task)}${t.bot?` <span class="muted" style="font-weight:400">· ${esc(t.bot)}</span>`:""}</div></td>
+  <td>${prioBadge(t.priority)}</td><td>${badge(t.status,buildStatusColor(t.status))}</td>
+  <td class="col-hide">${esc(t.builder||"—")}</td><td class="col-hide"><span class="tier ${esc(t.category)}">${esc(t.category||"—")}</span></td>
+  <td class="col-hide mono muted" style="font-size:12px">${fmtDate(t.ownerDeliveryDate)}</td>
+  <td class="mono" style="font-size:12px;color:${t.goLiveDate?cssVar('--s-live'):'var(--ink-3)'}">${fmtDate(t.goLiveDate)}</td>
+  <td class="upd">${lu?`<span class="ud">${esc(lu.date)}</span><span class="ut">${esc(lu.text)}</span>`:'<span class="muted">No updates</span>'}</td></tr>
+  <tr class="detail hidden"><td colspan="${B_COLS.length}"><div class="detail-inner"><div><div class="meta-grid">
+    <div><div class="k">Builder</div><div class="val">${esc(t.builder||"—")}</div></div>
+    <div><div class="k">CSM · PM</div><div class="val">${esc(t.csm||"—")} · ${esc(t.pm||"—")}</div></div>
+    <div><div class="k">Sales POC</div><div class="val">${esc(t.salesPOC||"—")}</div></div>
+    <div><div class="k">Commercial sign-off</div><div class="val">${esc(t.commercialSignoff||"—")}</div></div>
+    <div><div class="k">Owner delivery date</div><div class="val mono">${fmtDate(t.ownerDeliveryDate)}</div></div>
+    <div><div class="k">Go-live date</div><div class="val mono">${fmtDate(t.goLiveDate)}</div></div>
+    ${t.newDate?`<div><div class="k">Revised date</div><div class="val mono">${fmtDate(t.newDate)}</div></div>`:""}
+    ${typeof t.deliveryAgeing==="number"?`<div><div class="k">Delivery ageing</div><div class="val mono">${t.deliveryAgeing}d</div></div>`:""}
+  </div></div><div class="timeline"><div class="k">Activity log · ${t.history.length} update${t.history.length!==1?"s":""}</div>${timeline(t.history)}</div></div></td></tr>`;
+}
+
+/* ---------- TECH ISSUES ---------- */
+const T_COLS=[{k:"project",t:"Project / issue"},{k:"status",t:"Status"},{k:"issueAt",t:"Issue at"},{k:"owner",t:"Owner",cls:"col-hide"},{k:"eta",t:"ETA",cls:"col-hide"},{k:"goLive",t:"Go-live",cls:"col-hide"},{k:"details",t:"Details"}];
+const tSort={key:"status",dir:1};
+function issueColor(s){ return /resolv/i.test(s||"")?cssVar("--s-live"):(/wip|progress/i.test(s||"")?cssVar("--s-test"):cssVar("--s-neutral")); }
+function bindIssues(){
+  document.getElementById("t-search").addEventListener("input",debounce(renderTTable,180));
+  ["t-status","t-at"].forEach(id=>document.getElementById(id).addEventListener("change",renderTTable));
+  document.getElementById("t-clear").addEventListener("click",()=>{document.getElementById("t-search").value="";["t-status","t-at"].forEach(id=>document.getElementById(id).value="__all");renderTTable();});
+  document.getElementById("t-head").innerHTML=T_COLS.map(c=>`<th data-k="${c.k}" class="${c.cls||''}">${c.t}<span class="ar" data-ar="${c.k}"></span></th>`).join("");
+  wireSort("t-head",tSort,renderTTable);
+}
+function renderIssues(){
+  const T=DATA.techIssues;
+  const wip=T.filter(x=>/wip|progress/i.test(x.status||"")).length, res=T.filter(x=>/resolv/i.test(x.status||"")).length;
+  const k=[
+    {l:"Open issues",v:wip,d:"WIP / in progress",cls:"risk"},
+    {l:"Resolved",v:res,d:"closed",cls:"live"},
+    {l:"On Chat360",v:T.filter(x=>/chat360/i.test(x.issueAt||"")).length,d:"our court",cls:"warn"},
+    {l:"On Client",v:T.filter(x=>/client/i.test(x.issueAt||"")).length,d:"awaiting client",cls:""},
+    {l:"Total tracked",v:T.length,d:"all escalations",cls:"accent"},
+    {l:"With ETA",v:T.filter(x=>x.eta).length,d:"timeline set",cls:""}
+  ];
+  document.getElementById("t-kpis").innerHTML=k.map(c=>`<div class="kpi ${c.cls}"><div class="l">${c.l}</div><div class="v">${c.v}</div><div class="d">${c.d}</div></div>`).join("");
+  fillSelect("t-status",uniq(T,"status"),"statuses"); fillSelect("t-at",uniq(T,"issueAt"),"owners");
+  renderTTable();
+}
+function renderTTable(){
+  const q=document.getElementById("t-search").value.trim().toLowerCase();
+  const f={status:val("t-status"),at:val("t-at")};
+  let rows=DATA.techIssues.filter(x=>{
+    if(f.status!=="__all"&&x.status!==f.status) return false;
+    if(f.at!=="__all"&&x.issueAt!==f.at) return false;
+    if(q){const hay=[x.project,x.owner,x.details,x.csm,x.pm,x.latestUpdate&&x.latestUpdate.text].join(" ").toLowerCase(); if(!hay.includes(q)) return false;}
+    return true;
+  });
+  rows=sortRows(rows,tSort,{status:x=>/wip|progress/i.test(x.status||"")?0:(/resolv/i.test(x.status||"")?1:2)});
+  document.getElementById("t-count").textContent=rows.length; sortArrow("t-head",tSort);
+  document.getElementById("t-empty").classList.toggle("hidden",rows.length>0);
+  document.getElementById("t-body").innerHTML=rows.map(tRow).join(""); wireExpand("t-body");
+}
+function tRow(x){
+  return `<tr class="main"><td><div class="pname"><svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>${esc(x.project)}</div></td>
+  <td>${badge(x.status,issueColor(x.status))}</td>
+  <td>${x.issueAt?`<span class="muted">${esc(x.issueAt)}</span>`:"—"}</td>
+  <td class="col-hide muted">${esc(x.owner||"—")}</td><td class="col-hide muted" style="font-size:12px">${esc(x.eta||"—")}</td>
+  <td class="col-hide muted" style="font-size:12px">${esc(x.goLive||"—")}</td>
+  <td class="upd"><span class="clamp2">${esc(x.details||"—")}</span></td></tr>
+  <tr class="detail hidden"><td colspan="${T_COLS.length}"><div class="detail-inner"><div><div class="meta-grid">
+    <div><div class="k">CSM · PM</div><div class="val">${esc(x.csm||"—")} · ${esc(x.pm||"—")}</div></div>
+    <div><div class="k">Owner</div><div class="val">${esc(x.owner||"—")}</div></div>
+    <div><div class="k">ETA</div><div class="val">${esc(x.eta||"—")}</div></div>
+    <div><div class="k">Go-live</div><div class="val">${esc(x.goLive||"—")}</div></div>
+  </div><div class="leader-note"><div class="k">Issue details</div><div class="val">${esc(x.details||"—")}</div></div></div>
+  <div class="timeline"><div class="k">Status log · ${x.history.length} update${x.history.length!==1?"s":""}</div>${timeline(x.history)}</div></div></td></tr>`;
+}
+
+/* ---------- HANDOVER ---------- */
+const S_COLS=[{k:"client",t:"Client"},{k:"csm",t:"CSM"},{k:"category",t:"Tier",cls:"col-hide"},{k:"city",t:"City",cls:"col-hide"},{k:"po",t:"PO"},{k:"tentativeGoLive",t:"Tentative"},{k:"dependency",t:"Dependency"},{k:"csComments",t:"CS comment"}];
+const sSort={key:"client",dir:1};
+function bindHandover(){
+  document.getElementById("s-search").addEventListener("input",debounce(renderSTable,180));
+  ["s-csm","s-tier","s-dep"].forEach(id=>document.getElementById(id).addEventListener("change",renderSTable));
+  document.getElementById("s-clear").addEventListener("click",()=>{document.getElementById("s-search").value="";["s-csm","s-tier","s-dep"].forEach(id=>document.getElementById(id).value="__all");renderSTable();});
+  document.getElementById("s-head").innerHTML=S_COLS.map(c=>`<th data-k="${c.k}" class="${c.cls||''}">${c.t}<span class="ar" data-ar="${c.k}"></span></th>`).join("");
+  wireSort("s-head",sSort,renderSTable);
+}
+function renderHandover(){
+  const S=DATA.salesHandover;
+  const noPO=S.filter(x=>!x.po||/^(no|\?)$/i.test(x.po)).length;
+  const k=[
+    {l:"In pipeline",v:S.length,d:"sales → CSM",cls:"accent"},
+    {l:"Awaiting PO",v:noPO,d:"no PO / unclear",cls:"warn"},
+    {l:"Dep. on client",v:S.filter(x=>/client/i.test(x.dependency||"")).length,d:"blocked on client",cls:""},
+    {l:"Dep. on Chat360",v:S.filter(x=>/chat360/i.test(x.dependency||"")).length,d:"our court",cls:"risk"},
+    {l:"Platinum",v:S.filter(x=>x.category==="Platinum").length,d:"high-value incoming",cls:""},
+    {l:"With tentative date",v:S.filter(x=>x.tentativeGoLive).length,d:"scheduled",cls:""}
+  ];
+  document.getElementById("h-kpis").innerHTML=k.map(c=>`<div class="kpi ${c.cls}"><div class="l">${c.l}</div><div class="v">${c.v}</div><div class="d">${c.d}</div></div>`).join("");
+  fillSelect("s-csm",uniq(S,"csm"),"CSMs"); fillSelect("s-tier",uniq(S,"category"),"tiers"); fillSelect("s-dep",uniq(S,"dependency"),"dependencies");
+  renderSTable();
+}
+function renderSTable(){
+  const q=document.getElementById("s-search").value.trim().toLowerCase();
+  const f={csm:val("s-csm"),tier:val("s-tier"),dep:val("s-dep")};
+  let rows=DATA.salesHandover.filter(x=>{
+    if(f.csm!=="__all"&&x.csm!==f.csm) return false;
+    if(f.tier!=="__all"&&x.category!==f.tier) return false;
+    if(f.dep!=="__all"&&x.dependency!==f.dep) return false;
+    if(q){const hay=[x.client,x.csm,x.dependency,x.techTeam,x.salesSPOC,x.csComments].join(" ").toLowerCase(); if(!hay.includes(q)) return false;}
+    return true;
+  });
+  rows=sortRows(rows,sSort,{});
+  document.getElementById("s-count").textContent=rows.length; sortArrow("s-head",sSort);
+  document.getElementById("s-empty").classList.toggle("hidden",rows.length>0);
+  document.getElementById("s-body").innerHTML=rows.map(sRow).join(""); wireExpand("s-body");
+}
+function sRow(x){
+  return `<tr class="main"><td><div class="pname"><svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>${esc(x.client)}</div></td>
+  <td>${esc(x.csm||"—")}</td><td class="col-hide"><span class="tier ${esc(x.category)}">${esc(x.category||"—")}</span></td>
+  <td class="col-hide muted">${esc(x.city||"—")}</td><td>${esc(x.po||"—")}</td>
+  <td class="mono muted" style="font-size:12px">${fmtDate(x.tentativeGoLive)}</td>
+  <td class="muted">${esc(x.dependency||"—")}</td>
+  <td class="upd"><span class="clamp2">${esc(x.csComments||"—")}</span></td></tr>
+  <tr class="detail hidden"><td colspan="${S_COLS.length}"><div class="detail-inner"><div><div class="meta-grid">
+    <div><div class="k">Sales SPOC</div><div class="val">${esc(x.salesSPOC||"—")}</div></div>
+    <div><div class="k">Tech team</div><div class="val">${esc(x.techTeam||"—")}</div></div>
+    <div><div class="k">Products live</div><div class="val">${esc(x.productsLive||"—")}</div></div>
+    <div><div class="k">Products not live</div><div class="val">${esc(x.productsNonLive||"—")}</div></div>
+    <div><div class="k">Open action</div><div class="val">${esc(x.openAct||"—")}</div></div>
+    <div><div class="k">Go-live date</div><div class="val mono">${fmtDate(x.goLiveDate)}</div></div>
+  </div></div><div class="timeline"><div class="k">CS comment</div><div class="val" style="font-size:12.5px;color:var(--ink-2);white-space:pre-wrap">${esc(x.csComments||"—")}</div></div></div></td></tr>`;
+}
+
+/* ---------- TEAM ---------- */
+function renderTeam(){
+  const B=DATA.buildTasks;
+  const all=countBy(B,t=>t.builder), allL=Object.keys(all).sort((a,b)=>all[b]-all[a]).slice(0,12);
+  hbar("teamChart",allL,allL.map(b=>all[b]),cssVar("--brand"));
+  const active=countBy(B.filter(t=>!bDone(t)),t=>t.builder), actL=Object.keys(active).sort((a,b)=>active[b]-active[a]).slice(0,12);
+  hbar("teamActiveChart",actL,actL.map(b=>active[b]),cssVar("--s-build"));
+  document.getElementById("buddyGrid").innerHTML=DATA.buddyPlan.map(b=>`
+    <div class="buddy"><div class="bn">${esc(b.builder)}</div><div class="meta">${esc(b.place||"—")} · ${esc(b.channel||"—")}</div>
+    <div class="row"><span>Buddy</span><b>${esc(b.buddy||"—")}</b></div>
+    <div class="row"><span>Readiness</span><span class="rchip">${esc(b.readiness||"—")}</span></div>
+    ${b.nextSteps?`<div class="row" style="display:block"><span>Next</span><div style="color:var(--ink-2);margin-top:3px;font-size:12px">${esc(b.nextSteps)}</div></div>`:""}</div>`).join("")||'<div class="empty">No buddy plan entries.</div>';
+}
+
+/* ---------- generic sort ---------- */
+function val(id){ return document.getElementById(id).value; }
+function sortRows(rows,state,accessors){
+  const k=state.key, acc=accessors[k];
+  return rows.slice().sort((a,b)=>{
+    let va=acc?acc(a):a[k], vb=acc?acc(b):b[k];
+    if(typeof va==="string") va=va.toLowerCase(); if(typeof vb==="string") vb=vb.toLowerCase();
+    if(va==null) va=""; if(vb==null) vb="";
+    if(va<vb) return -state.dir; if(va>vb) return state.dir; return 0;
+  });
+}
 </script>
 </body>
 </html>
